@@ -28,6 +28,7 @@ export default function Layout() {
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [openNav, setOpenNav] = useState<string | null>(null)
   const role = user?.role
   const site = useSite()
   const { data: notes, refetch } = useQuery({ queryKey: ['notifications', user?.id], queryFn: () => api.get('/auth/notifications'), refetchInterval: 60_000 })
@@ -36,6 +37,7 @@ export default function Layout() {
   useEffect(() => {
     window.scrollTo(0, 0)
     setMenuOpen(false)
+    setOpenNav(null)
   }, [loc.pathname])
   useEffect(() => { if (noticeOpen) refetch() }, [noticeOpen, refetch])
 
@@ -101,7 +103,8 @@ export default function Layout() {
         </div>
         <nav className="topnav">
           {visible.map((i) => i.subs ? <Dropdown key={i.to} trigger={['hover', 'click']} placement="bottom" overlayClassName="topnav-dropdown"
-            menu={{ items: i.subs.filter(s => s.show !== false).map(s => ({ key: s.to, label: s.label })), onClick: ({ key }) => nav(key) }}>
+            open={openNav === i.to} onOpenChange={open => setOpenNav(open ? i.to : null)}
+            menu={{ items: i.subs.filter(s => s.show !== false).map(s => ({ key: s.to, label: s.label })), onClick: ({ key }) => { setOpenNav(null); nav(key) } }}>
             <button className={`topnav-trigger ${isActive(i) ? 'active' : ''}`}>{i.label}<span className="nav-chevron">⌄</span></button>
           </Dropdown> : <NavLink key={i.to} to={i.to} className={isActive(i) ? 'active' : ''}>{i.label}</NavLink>)}
         </nav>
