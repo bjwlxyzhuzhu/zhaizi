@@ -22,7 +22,7 @@ for attempt in range(60):
         health = json.loads(request('/api/health'))
         assert health['ok'] is True
         break
-    except (URLError, TimeoutError):
+    except (URLError, TimeoutError, ConnectionError):
         if attempt == 59:
             raise
         time.sleep(2)
