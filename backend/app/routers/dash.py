@@ -96,13 +96,13 @@ def progress(u: User = Depends(require("admin", "researcher")), db: Session = De
     t = trust_metrics(db)
     current = {"vessels": m["vessels"], "dialects": m["dialects"], "kg_nodes": m["kg_nodes"], "glyphs": m["glyphs"],
                "dialect_districts": m["dialect_districts"], "eval_items": m["eval_items"],
-               "citation_accuracy": t["citation_accuracy"] or 0, "adjudicated": t["adjudicated"],
+               "citation_accuracy": t["citation_accuracy"], "adjudicated": t["adjudicated"],
                "users": _count(db, User, User.status == "active")}
     out = []
     for k in db.scalars(select(KPITarget).order_by(KPITarget.year, KPITarget.id)):
         cur = current.get(k.metric, 0)
         out.append({"id": k.id, "indicator": k.indicator, "year": k.year, "target": k.target, "unit": k.unit,
-                    "current": cur, "rate": round(min(cur / k.target, 1) * 100, 1) if k.target else 0})
+                    "current": cur, "rate": round(min(cur / k.target, 1) * 100, 1) if cur is not None and k.target else None})
     from .res import workload
     return {"kpis": out, "workload": workload(u, db)}
 

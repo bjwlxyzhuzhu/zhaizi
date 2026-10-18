@@ -22,15 +22,21 @@ export const darkTheme = {
 }
 
 export const paperTheme = {
+  inherit: false,
   algorithm: theme.defaultAlgorithm,
   token: {
     colorPrimary: '#2F6F5E',
     colorLink: '#2F6F5E',
     colorWarning: '#B7893A',
     colorError: '#B5452F',
+    colorBgBase: '#FBFAF6',
     colorBgContainer: '#FFFFFF',
+    colorBgElevated: '#FFFFFF',
     colorBorder: '#DCD8CA',
+    colorBorderSecondary: '#E3E0D4',
     colorText: '#23302B',
+    colorTextSecondary: '#58655E',
+    colorTextPlaceholder: '#737C76',
     borderRadius: 10,
     fontFamily: font,
   },

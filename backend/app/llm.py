@@ -7,6 +7,7 @@
 """
 import re
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -29,6 +30,15 @@ class ModelError(Exception):
     pass
 
 
+def normalize_base_url(value: str) -> str:
+    """Accept a provider origin or an OpenAI-compatible API base path."""
+    parts = urlsplit(value.strip())
+    if parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment:
+        raise ValueError("请填写 http(s) 接口地址，不含密钥、查询参数或片段")
+    path = parts.path.rstrip("/") or "/v1"
+    return urlunsplit((parts.scheme, parts.netloc, path, "", ""))
+
+
 def runtime_settings():
     """系统设置页可覆盖环境变量（密钥加密存储）。"""
     from .db import SessionLocal
@@ -39,10 +49,10 @@ def runtime_settings():
         s = {r.key: r.value for r in db.query(SystemSetting).all()}
     finally:
         db.close()
-    key = decrypt_secret(s.get("model_api_key_enc", "")) or config.MODEL_API_KEY
+    key = decrypt_secret(s["model_api_key_enc"]) if "model_api_key_enc" in s else config.MODEL_API_KEY
     return {
         "api_key": key,
-        "base_url": s.get("model_base_url") or config.MODEL_BASE_URL,
+        "base_url": normalize_base_url(s.get("model_base_url") or config.MODEL_BASE_URL),
         "model": s.get("model_name") or config.MODEL_NAME,
         "timeout": int(s.get("model_timeout") or config.MODEL_TIMEOUT),
     }
@@ -50,7 +60,7 @@ def runtime_settings():
 
 def model_label() -> str:
     s = runtime_settings()
-    return s["model"] if s["api_key"] else "演示模型(未接入云端)"
+    return s["model"] if s["api_key"] else "库内检索摘引（未接入云端模型）"
 
 
 def chat(messages: list[dict], *, image_data_url: str | None = None, demo_chunks=None, question: str = ""):
@@ -87,11 +97,11 @@ def _demo_answer(question: str, chunks):
     t0 = time.time()
     if "#模拟超时" in question:
         time.sleep(1.5)
-        raise ModelError("模型响应超时（演示故障注入）")
+        raise ModelError("模型响应超时（测试故障注入）")
     if "#模拟报错" in question:
-        raise ModelError("模型接口返回 500（演示故障注入）")
+        raise ModelError("模型接口返回 500（测试故障注入）")
     if not chunks:
-        return "库内暂无相关资料。", 40, 8, "演示模型"
+        return "库内暂无相关资料。", 0, 0, "库内检索摘引"
     from .retrieval import grams
     qg = set(g for g in grams(question) if len(g) > 1)
     lines = []
@@ -114,7 +124,7 @@ def _demo_answer(question: str, chunks):
     tail = "以上为库内条目摘引，具体释读与分歧请以原器拓片、权威著录和专家裁断为准。"
     text = head + "\n" + "\n".join(f"{i + 1}. {l}" for i, l in enumerate(lines)) + "\n" + tail
     # 粗略估计 token 用量，供运营视图统计
-    return text, 300 + sum(len(c.text) for c in chunks), len(text), "演示模型"
+    return text, 0, 0, "库内检索摘引"
 
 
 def demo_vision(hint: str, glyph_chars: list[str]):
@@ -125,5 +135,5 @@ def demo_vision(hint: str, glyph_chars: list[str]):
     base = hint[:1] if hint else (glyph_chars[0] if glyph_chars else "宅")
     cands = similar.get(base, [base] + [c for c in glyph_chars if c != base][:3])
     scores = [0.72, 0.14, 0.08, 0.06]
-    return [{"char": c, "score": scores[i], "reason": "字形库相近字（演示模型，未经视觉识别）"}
+    return [{"char": c, "score": scores[i], "reason": "字形库相近字（未经视觉识别，分值为候选排序权重）"}
             for i, c in enumerate(cands[:4])]

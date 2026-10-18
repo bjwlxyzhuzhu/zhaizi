@@ -1,13 +1,14 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { App, Button, Form, InputNumber, Modal, Progress, Spin, Table, Tag } from 'antd'
+import { App, Button, ConfigProvider, Form, InputNumber, Modal, Progress, Spin, Table, Tag } from 'antd'
 import { FullscreenOutlined, PauseOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { api } from '../api'
 import { useAuth, useSite } from '../store'
 import EChart, { AXIS } from '../components/EChart'
 import type { District } from '../three/BaojiTerrain'
 import { imgUrl } from '../components/ui'
+import { paperTheme } from '../theme'
 
 const BaojiTerrain = lazy(() => import('../three/BaojiTerrain'))
 const StarGraph = lazy(() => import('../three/StarGraph'))
@@ -17,6 +18,7 @@ function CountUp({ value, suffix = '' }: { value: number | null | undefined; suf
   const [v, setV] = useState(0)
   useEffect(() => {
     if (value == null) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setV(value); return }
     const start = performance.now()
     let raf = 0
     const tick = (t: number) => {
@@ -38,7 +40,7 @@ function ScreenView() {
   const { data: kg } = useQuery({ queryKey: ['dash-kg', data?.showcase_node], queryFn: () => api.get(`/kg/nodes/${data.showcase_node}/neighbors`), enabled: !!data?.showcase_node })
   const { data: glyph } = useQuery({ queryKey: ['char', '宅'], queryFn: () => api.get('/lib/characters/宅') })
   const [focus, setFocus] = useState(0)
-  const [paused, setPaused] = useState(false)
+  const [paused, setPaused] = useState(true)
   const [picked, setPicked] = useState<District | null>(null)
   const [scale, setScale] = useState(1)
   const box = useRef<HTMLDivElement>(null)
@@ -58,13 +60,16 @@ function ScreenView() {
       setScale(Math.min(el.clientWidth / 1920, el.clientHeight / 1080))
     }
     fit()
+    const observer = new ResizeObserver(fit)
+    if (box.current?.parentElement) observer.observe(box.current.parentElement)
     window.addEventListener('resize', fit)
     document.addEventListener('fullscreenchange', fit)
     return () => {
       window.removeEventListener('resize', fit)
       document.removeEventListener('fullscreenchange', fit)
+      observer.disconnect()
     }
-  }, [])
+  }, [!!data])
 
   const m = data?.metrics
   const t = data?.trust
@@ -84,18 +89,18 @@ function ScreenView() {
   const pct = (v: number | null) => (v == null ? null : v)
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - var(--header-h) - 64px)', overflow: 'hidden', background: '#050908' }} id="screen-root">
+    <div className="data-screen" style={{ position: 'relative', width: '100%', height: 'calc(100vh - var(--header-h) - 64px)', overflow: 'hidden', background: '#050f1c' }} id="screen-root">
       <div ref={box} style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute',
-        left: `calc(50% - ${960 * scale}px)`, top: 0, background: 'radial-gradient(1400px 800px at 50% 45%, #0f211c, #050908 70%)' }}>
+        left: `calc(50% - ${960 * scale}px)`, top: `calc(50% - ${540 * scale}px)`, background: 'radial-gradient(1400px 800px at 50% 45%, #103247, #050f1c 75%)' }}>
         <div style={{ position: 'absolute', left: 50, top: 24, right: 50, display: 'flex', alignItems: 'baseline', gap: 26 }}>
           <span className="serif" style={{ fontSize: 44, fontWeight: 700, letterSpacing: 6 }}>{useSite.getState().anon ? '平台数智建设驾驶舱' : '实验室数智建设驾驶舱'}</span>
-          <span className="dim" style={{ letterSpacing: 4 }}>实地考察演示大屏 / DEMO MODE</span>
+          <span className="dim" style={{ letterSpacing: 3 }}>周秦文脉 · 关陇智研 / BAOJI</span>
           <span style={{ flex: 1 }} />
           <span className="dim mono">数据更新 {data.updated_at.replace('T', ' ')}</span>
         </div>
 
         {/* 左：数据底座 */}
-        <div className="panel" style={{ position: 'absolute', left: 50, top: 110, width: 400, bottom: 190 }}>
+        <div className="panel" style={{ position: 'absolute', left: 30, top: 110, width: 270, bottom: 190 }}>
           <div className="panel-head"><span className="panel-title">数据底座</span><span className="panel-cap">DATA BASE</span></div>
           {[[m.vessels, '器铭件数（已审核）', ''], [m.dialects, `方言条目（覆盖 ${m.dialect_districts} 区县）`, ''], [m.kg_nodes, '图谱实体', ''], [m.kg_edges, '图谱关系', ''], [m.glyphs, '字形图录', ''], [m.eval_items, '评测集题数', '']].map(([v, l]) => (
             <div key={l as string} className="row-line">
@@ -103,14 +108,14 @@ function ScreenView() {
               <span className="serif" style={{ fontSize: 34, color: 'var(--gold-2)' }}><CountUp value={v as number} /></span>
             </div>
           ))}
-          <div className="note" style={{ marginTop: 14 }}>MVP 阶段仅允许 L1 已审核资料参与云端模型检索。</div>
+          <div className="note" style={{ marginTop: 14 }}>云端模型仅检索 L1 已审核资料。</div>
         </div>
 
         {/* 中：轮播焦点 */}
-        <div className="panel" style={{ position: 'absolute', left: 480, right: 480, top: 110, bottom: 190, padding: 0, overflow: 'hidden' }}>
+        <div className="panel map-stage" style={{ position: 'absolute', left: 320, right: 320, top: 110, bottom: 190, padding: 0, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', left: 26, top: 20, zIndex: 3, display: 'flex', gap: 16, alignItems: 'center' }}>
-            <span className="serif gold" style={{ fontSize: 28 }}>{FOCUS[focus]}</span>
-            {FOCUS.map((_, i) => <span key={i} onClick={() => setFocus(i)} style={{ width: 28, height: 4, borderRadius: 2, cursor: 'pointer', background: i === focus ? 'var(--gold)' : '#2a3733' }} />)}
+            <span className="serif gold" style={{ fontSize: 25 }}>{FOCUS[focus]}</span>
+            {FOCUS.map((title, i) => <button key={i} aria-label={title} aria-pressed={focus === i} onClick={() => setFocus(i)} style={{ border: 0, width: 24, height: 7, borderRadius: 2, cursor: 'pointer', background: i === focus ? '#61dae8' : '#2a465a' }} />)}
             <Button size="small" icon={paused ? <CaretRightOutlined /> : <PauseOutlined />} onClick={() => setPaused((p) => !p)}>{paused ? '继续轮播' : '暂停轮播'}</Button>
           </div>
           <Suspense fallback={<Spin style={{ margin: 'auto' }} />}>
@@ -124,7 +129,7 @@ function ScreenView() {
           </Suspense>
           {focus === 0 && (
             <div className="pill" style={{ position: 'absolute', left: 26, bottom: 20, color: '#9aa39e', borderColor: '#2a3733' }}>
-              地形与点位为设计示意 · 上线须接入核验后的标准底图（仅市域，不涉及国界）· 光柱高度 = 该区县已审核器铭数
+              宝鸡市 12 区县 · 行政区划与实测高程模型
             </div>
           )}
           {picked && focus === 0 && (
@@ -145,11 +150,11 @@ function ScreenView() {
         </div>
 
         {/* 右：可信度 */}
-        <div className="panel" style={{ position: 'absolute', right: 50, top: 110, width: 400, bottom: 190 }}>
+        <div className="panel" style={{ position: 'absolute', right: 30, top: 110, width: 270, bottom: 190 }}>
           <div className="panel-head"><span className="panel-title">可信释读质量</span><span className="panel-cap">TRUST METRICS</span></div>
           {[[pct(t.citation_accuracy), '引证准确率', `抽检 ${t.sampled} 条 · 目标 ≥90%`], [pct(t.unsourced_rate), '无出处断言率', '越低越好'], [pct(t.adoption_rate), '专家采纳率', `已裁断 ${t.adjudicated} 条`]].map(([v, l, s]) => (
             <div key={l as string} className="stat-card" style={{ marginBottom: 12 }}>
-              <div className="serif" style={{ fontSize: 38, color: 'var(--gold-2)' }}>{v == null ? '待录入' : <CountUp value={v as number} suffix="%" />}</div>
+              <div className="serif" style={{ fontSize: 38, color: 'var(--gold-2)' }}>{v == null ? '暂无数据' : <CountUp value={v as number} suffix="%" />}</div>
               <div className="stat-label">{l} · {s}</div>
             </div>
           ))}
@@ -205,8 +210,8 @@ function ProgressView() {
             columns={[
               { title: '指标', dataIndex: 'indicator' },
               { title: '目标值', dataIndex: 'target', render: (v, r: any) => user.role === 'admin' ? <a onClick={() => setEdit(r)}>{v}{r.unit}</a> : `${v}${r.unit}` },
-              { title: '当前值', dataIndex: 'current', render: (v, r: any) => `${v}${r.unit}` },
-              { title: '完成率', dataIndex: 'rate', width: 320, render: (v) => <Progress percent={v} strokeColor={{ from: '#3F8F7A', to: '#C9A45C' }} /> },
+              { title: '当前值', dataIndex: 'current', render: (v, r: any) => v == null ? '暂无数据' : `${v}${r.unit}` },
+              { title: '完成率', dataIndex: 'rate', width: 320, render: (v) => v == null ? <span className="note">暂无抽检记录</span> : <Progress percent={v} strokeColor={{ from: '#3F8F7A', to: '#C9A45C' }} /> },
             ]} />
         </div>
       ))}
@@ -234,6 +239,9 @@ function ProgressView() {
 
 function OpsView() {
   const { data } = useQuery({ queryKey: ['dash-ops'], queryFn: () => api.get('/dash/ops'), refetchInterval: 60_000 })
+  const { data: geography } = useQuery({ queryKey: ['dash-screen'], queryFn: () => api.get('/dash/screen'), refetchInterval: 30_000 })
+  const [picked, setPicked] = useState<District | null>(null)
+  const nav = useNavigate()
   if (!data) return <Spin />
   const ROLE: Record<string, string> = { admin: '管理员', researcher: '研究员', user: '用户' }
   const pie = (obj: Record<string, number>, map: Record<string, string> = {}) => ({
@@ -248,10 +256,25 @@ function OpsView() {
   })
   const Stat = ({ v, l }: { v: any; l: string }) => <div className="stat-card"><div className="stat-num">{v}</div><div className="stat-label">{l}</div></div>
   return (
-    <div className="page">
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(6,1fr)', marginBottom: 20 }}>
-        <Stat v={data.users.total} l="用户总数" /><Stat v={data.users.dau} l="今日活跃" /><Stat v={data.users.new_today} l="今日新增" />
-        <Stat v={data.model.calls} l="模型调用次数" /><Stat v={`${data.model.fail_rate}%`} l="调用失败率" /><Stat v={`¥${data.model.cost}`} l="估算费用（按配置单价）" />
+    <div className="page paper ops-view">
+      <div className="ops-heading"><div><small>ZHOU & QIN · DIGITAL RESEARCH</small><h1>宅兹 · 宝鸡数智研究态势</h1><p>周秦文脉 / 关陇文化 / 研究服务运营</p></div><span>平台记录实时汇总 · 每分钟更新</span></div>
+      <div className="ops-hero">
+        <div className="ops-geography">
+          <div className="ops-map-title"><span>宝鸡市域 · 文化资源分布</span><small>器铭资料 / 区县汇总</small></div>
+          <Suspense fallback={<Spin />}><BaojiTerrain districts={geography?.districts || []} light onPick={setPicked} /></Suspense>
+          <div className="ops-map-stats"><Stat v={geography?.metrics.vessels ?? '—'} l="已审核器铭" /><Stat v={geography?.metrics.dialects ?? '—'} l="方言条目" /><Stat v={geography?.metrics.kg_nodes ?? '—'} l="知识实体" /></div>
+          {picked && <div className="ops-pick"><button onClick={() => setPicked(null)} aria-label="关闭区县详情">×</button><b>{picked.name} · {picked.count} 件已审核器铭</b>{picked.vessels.map(v => <a key={v.id} onClick={() => nav(`/library/vessels/${v.id}`)}>{v.name} →</a>)}</div>}
+        </div>
+        <aside className="ops-summary"><h2>核心运营指标</h2>
+          <div className="ops-kpi"><span>注册用户</span><b>{data.users.total}<small>人</small></b></div>
+          <div className="ops-kpi"><span>今日活跃</span><b>{data.users.dau}<small>人</small></b></div>
+          <div className="ops-kpi"><span>今日新增</span><b>{data.users.new_today}<small>人</small></b></div>
+          <div className="ops-kpi"><span>模型调用</span><b>{data.model.calls}<small>次</small></b></div>
+          <div className="ops-kpi"><span>调用失败率</span><b>{data.model.calls ? `${data.model.fail_rate}%` : '暂无数据'}</b></div>
+          <div className="ops-kpi"><span>估算费用</span><b>¥{data.model.cost}</b></div>
+          <div className="ops-mini-title">近 14 天日活</div><EChart height={155} option={bar(data.users.dau_trend.map((d: any) => d.date.slice(5)), data.users.dau_trend.map((d: any) => d.dau), '#a4c9ac')} />
+          <p>指标来自平台账号、调用和审核记录；费用按配置单价估算。</p>
+        </aside>
       </div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         <div className="panel"><div className="panel-title">分角色用户</div><EChart option={pie(data.users.by_role, ROLE)} /></div>
@@ -307,7 +330,7 @@ export default function Dashboard() {
           <Button icon={<FullscreenOutlined />} onClick={() => document.getElementById('screen-root')?.requestFullscreen?.()}>全屏（F11 亦可）</Button>
         )}
       </div>
-      {view === 'screen' ? <ScreenView /> : view === 'progress' ? <ProgressView /> : user.role === 'admin' ? <OpsView /> : null}
+      {view === 'screen' ? <ScreenView /> : view === 'progress' ? <ProgressView /> : user.role === 'admin' ? <ConfigProvider theme={paperTheme}><OpsView /></ConfigProvider> : null}
     </div>
   )
 }

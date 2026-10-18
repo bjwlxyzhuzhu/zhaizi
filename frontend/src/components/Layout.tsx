@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, ConfigProvider, Drawer, Dropdown, Empty, Input, Modal } from 'antd'
 import {
   AppstoreOutlined, BellOutlined, CheckSquareOutlined, ClusterOutlined, DashboardOutlined, DatabaseOutlined,
-  ExperimentOutlined, HomeOutlined, LogoutOutlined, SearchOutlined, SettingOutlined, UserOutlined, KeyOutlined,
+  ExperimentOutlined, HomeOutlined, LogoutOutlined, SearchOutlined, SettingOutlined, UserOutlined, KeyOutlined, MenuOutlined,
 } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api'
@@ -27,14 +27,17 @@ export default function Layout() {
   const nav = useNavigate()
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const role = user?.role
   const site = useSite()
-  const { data: notes, refetch } = useQuery({ queryKey: ['notifications'], queryFn: () => api.get('/auth/notifications'), refetchInterval: 60_000 })
+  const { data: notes, refetch } = useQuery({ queryKey: ['notifications', user?.id], queryFn: () => api.get('/auth/notifications'), refetchInterval: 60_000 })
   const unread = (notes || []).filter((n: any) => !n.read).length
 
   useEffect(() => {
     window.scrollTo(0, 0)
+    setMenuOpen(false)
   }, [loc.pathname])
+  useEffect(() => { if (noticeOpen) refetch() }, [noticeOpen, refetch])
 
   const items: NavItem[] = [
     { to: '/', label: '首页', icon: <HomeOutlined />, show: true, match: ['/'] },
@@ -46,8 +49,8 @@ export default function Layout() {
       ],
     },
     {
-      to: '/qa', label: 'AI释读', icon: <ExperimentOutlined />, show: true, match: ['/qa'],
-      subs: [{ to: '/qa', label: '可信问答' }, { to: '/qa/vision', label: '拓片图像释读' }],
+      to: '/qa', label: '研究智能体', icon: <ExperimentOutlined />, show: true, match: ['/qa'],
+      subs: [{ to: '/qa', label: '文献问答智能体' }, { to: '/qa/vision', label: '拓片释读智能体' }],
     },
     { to: '/graph', label: '知识图谱', icon: <ClusterOutlined />, show: true, match: ['/graph'] },
     { to: '/tasks', label: '任务中心', icon: <CheckSquareOutlined />, show: can.tasks(role), match: ['/tasks'] },
@@ -60,14 +63,17 @@ export default function Layout() {
         { to: '/workbench/submissions', label: '任务审核' },
       ],
     },
-    { to: '/dashboard', label: '数据驾驶舱', icon: <DashboardOutlined />, show: can.dashboard(role), match: ['/dashboard'] },
+    { to: '/dashboard', label: '数据驾驶舱', icon: <DashboardOutlined />, show: can.dashboard(role), match: ['/dashboard'],
+      subs: [{ to: '/dashboard', label: '宝鸡三维大屏' }, { to: '/dashboard?view=progress', label: '建设进度' }, { to: '/dashboard?view=ops', label: '运营视图', show: can.admin(role) }] },
     {
       to: '/admin/users', label: '管理后台', icon: <SettingOutlined />, show: can.admin(role), match: ['/admin'],
       subs: [
         { to: '/admin/users', label: '用户管理' }, { to: '/admin/import', label: 'Excel 导入' },
         { to: '/admin/points', label: '积分流水' }, { to: '/admin/rules', label: '积分规则' },
         { to: '/admin/tasks', label: '任务模板' }, { to: '/admin/audit', label: '审计日志' },
-        { to: '/admin/settings', label: '系统设置', show: !!user?.is_super },
+        { to: '/admin/settings', label: '模型与 API 设置' },
+        { to: '/admin/notifications', label: '站内通知' },
+        { to: '/admin/agents', label: '智能体与知识库' },
       ],
     },
   ]
@@ -94,11 +100,10 @@ export default function Layout() {
           </div>
         </div>
         <nav className="topnav">
-          {visible.map((i) => (
-            <NavLink key={i.to} to={i.to} className={isActive(i) ? 'active' : ''}>
-              {i.label}
-            </NavLink>
-          ))}
+          {visible.map((i) => i.subs ? <Dropdown key={i.to} trigger={['hover', 'click']} placement="bottom" overlayClassName="topnav-dropdown"
+            menu={{ items: i.subs.filter(s => s.show !== false).map(s => ({ key: s.to, label: s.label })), onClick: ({ key }) => nav(key) }}>
+            <button className={`topnav-trigger ${isActive(i) ? 'active' : ''}`}>{i.label}<span className="nav-chevron">⌄</span></button>
+          </Dropdown> : <NavLink key={i.to} to={i.to} className={isActive(i) ? 'active' : ''}>{i.label}</NavLink>)}
         </nav>
         <div className="topbar-right">
           {role === 'user' ? (
@@ -106,7 +111,7 @@ export default function Layout() {
               积分 {user?.points ?? 0}
             </span>
           ) : (
-            <span className="pill">{user?.role_label} · AI 调用免积分</span>
+            <span className="pill">{user?.role_label} · 智能体调用免积分</span>
           )}
           <span className="icon-btn" title="跨库检索" onClick={() => setSearchOpen(true)}>
             <SearchOutlined />
@@ -137,36 +142,17 @@ export default function Layout() {
         </div>
       </header>
       <div className="body">
-        {!fullBleed && (
-          <aside className="sidebar">
-            <div className="side-cap">WORKSPACE / 研究空间</div>
-            {visible.map((i) => (
-              <div key={i.to}>
-                <NavLink to={i.to} className={`side-link ${isActive(i) ? 'active' : ''}`}>
-                  {i.icon}
-                  <span>{i.label}</span>
-                </NavLink>
-                {isActive(i) && i.subs && (
-                  <div className="side-sub">
-                    {i.subs.filter((s) => s.show !== false).map((s) => (
-                      <NavLink key={s.to} to={s.to} end className={({ isActive: a }) => (a ? 'active' : '')}>
-                        {s.label}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            <div className="side-foot">
-              周秦出土文献研究
-              <br />
-              证据可循，学术可证
-              <br />© 宅兹平台{site.orgShort ? ` · ${site.orgShort}` : ''}
-            </div>
-          </aside>
-        )}
+        <button className="workspace-launcher" aria-label="展开功能入口" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><MenuOutlined /><span>功能入口</span></button>
         {paper ? <ConfigProvider theme={paperTheme}>{content}</ConfigProvider> : content}
       </div>
+
+      <Drawer title="研究空间 · 功能入口" placement="left" width={740} open={menuOpen} destroyOnClose onClose={() => setMenuOpen(false)}>
+        <p className="note" style={{ marginBottom: 22 }}>选择研究服务；点击卡片展开二级功能。</p>
+        <div className="workspace-cards">{visible.map(i => i.subs ? <details key={i.to} className="workspace-card">
+          <summary>{i.icon}<strong>{i.label}</strong><span>展开选择 ＋</span></summary>
+          <div>{i.subs.filter(s => s.show !== false).map(s => <NavLink key={s.to} to={s.to} onClick={() => setMenuOpen(false)}>{s.label} →</NavLink>)}</div>
+        </details> : <button key={i.to} className="workspace-card" onClick={() => { nav(i.to); setMenuOpen(false) }}>{i.icon}<strong>{i.label}</strong><span>进入 →</span></button>)}</div>
+      </Drawer>
 
       <Drawer
         title="站内消息"
@@ -182,7 +168,7 @@ export default function Layout() {
             <div key={n.id} className="row-line" style={{ alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</div>
-                {n.body && <div className="note">{n.body}</div>}
+                {n.body && <div className="note" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{n.body}</div>}
               </div>
               <span className="note" style={{ whiteSpace: 'nowrap' }}>{n.created_at.replace('T', ' ')}</span>
             </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Progress, Skeleton } from 'antd'
+import { Carousel, Progress, Skeleton } from 'antd'
 import {
   ArrowRightOutlined, AuditOutlined, CameraOutlined, CheckSquareOutlined, ClusterOutlined, DatabaseOutlined,
   FileTextOutlined, MessageOutlined, PictureOutlined, SearchOutlined, StarOutlined,
@@ -10,7 +10,7 @@ import { api } from '../api'
 import { useAuth } from '../store'
 import { VesselImg, imgUrl } from '../components/ui'
 
-const TABS = ['AI 文字问答', '图像释读', '资料检索', '跨库检索']
+const TABS = ['文献问答智能体', '拓片释读智能体', '资料检索', '跨库检索']
 const EXAMPLES = ['何尊铭文中“宅兹中国”是什么意思？', '毛公鼎记载了什么事？', '虢季子白盘与《诗经·六月》', '宝鸡出土的西周重器有哪些']
 
 export default function Home() {
@@ -38,8 +38,8 @@ export default function Home() {
   const m = home?.metrics
 
   const entries = [
-    { t: 'AI 文字问答', d: '基于自建数据库的可信回答', i: <MessageOutlined />, to: '/qa' },
-    { t: '图像释读', d: '上传拓片 · 智能识别与释读', i: <PictureOutlined />, to: '/qa/vision' },
+    { t: '文献问答智能体', d: '关联知识库 · 检索引用 · 可信回答', i: <MessageOutlined />, to: '/qa' },
+    { t: '拓片释读智能体', d: '上传拓片 · 字形检索 · 辅助释读', i: <PictureOutlined />, to: '/qa/vision' },
     { t: '知识图谱', d: '三维关联 · 纵观文明脉络', i: <ClusterOutlined />, to: '/graph' },
     { t: '资料库', d: '器铭 · 字形 · 方言 · 传世文献', i: <DatabaseOutlined />, to: '/library/vessels' },
     user.role === 'user'
@@ -51,11 +51,14 @@ export default function Home() {
     <div className="page" style={{ maxWidth: 1760 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 20 }}>
         <section className="hero rise">
+          <div className="hero-carousel" aria-label="周秦文化主题轮播"><Carousel autoplay={!window.matchMedia('(prefers-reduced-motion: reduce)').matches} autoplaySpeed={6500} effect="fade" pauseOnHover dots>
+            {[['/img/hero.jpg', '宅兹中国 · 周秦文脉'], ['/img/landscape.jpg', '山川关陇 · 宝鸡文化资源'], ['/img/kg-thumb.jpg', '知识关联 · 智能体研究服务']].map(([src, title]) => <div key={src}><div className="hero-slide" style={{ backgroundImage: `url(${src})` }}><span>{title}</span></div></div>)}
+          </Carousel></div>
           <div className="hero-inner">
             <div className="eyebrow">WHERE HERITAGE MEETS INTELLIGENCE</div>
             <div className="hero-title">宅兹中国</div>
             <div className="hero-sub">从一件青铜器，走进三千年的文明叙事</div>
-            <div className="hero-tags">人机协同 · 可信释读 · 证据可溯 · 数智活化</div>
+            <div className="hero-tags">研究智能体 · 动态知识库 · 证据可溯 · 人机协同</div>
             <div className="search-tabs">
               {TABS.map((t, i) => (
                 <span key={t} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}>{t}</span>
@@ -77,7 +80,7 @@ export default function Home() {
               </button>
             </div>
             <div className="examples">
-              <span className="dim">示例问题：</span>
+              <span className="dim">推荐问题：</span>
               {EXAMPLES.map((e) => (
                 <span key={e} className="chip" onClick={() => { setTab(0); nav(`/qa?q=${encodeURIComponent(e)}`) }}>{e}</span>
               ))}
@@ -114,7 +117,7 @@ export default function Home() {
         </aside>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginTop: 20 }}>
+      <details className="home-services"><summary>智能体与研究服务 <span>点击展开选择 ＋</span></summary><div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginTop: 20 }}>
         {entries.map((e, i) => (
           <div key={e.t} className="entry-card rise" style={{ animationDelay: `${100 + i * 60}ms` }} onClick={() => nav(e.to)}>
             <div className="ico">{e.i}</div>
@@ -123,7 +126,7 @@ export default function Home() {
             <span className="go"><ArrowRightOutlined /></span>
           </div>
         ))}
-      </div>
+      </div></details>
 
       <div className="grid" style={{ gridTemplateColumns: '1.25fr 1fr 1fr', marginTop: 20 }}>
         <div className="panel">

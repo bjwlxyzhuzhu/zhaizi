@@ -4,6 +4,7 @@
 方言条目与古音为“示例数据”，全部须经研究员按 PRD §10 核校；字形为字体渲染占位，待上传拓片切图替换。
 """
 from datetime import datetime, timedelta
+import os
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,7 +16,6 @@ from .models import (Adjudication, AuditLog, DialectEntry, Glyph, Inscription, K
 from .config import IMAGE_CREDIT
 from .security import hash_password
 
-DEMO_PASSWORD = "Zhaizi2026"  # 演示账号密码，部署前请删除演示账号或重置
 SRC = "公开著录与博物馆公开资料整理（种子数据，待研究员核校）"
 
 # 演示账号（中性名称；正式使用时由管理员 Excel 导入真实账号）
@@ -24,9 +24,9 @@ USERS = [
     ("admin", "平台管理员", "研究平台", "教师", "admin", True, False),
     ("office01", "平台办公室", "研究平台", "教师", "admin", False, False),
     ("r001", "研究员A", "人文学院", "教师", "researcher", False, False),
-    ("r002", "研究员B", "历史学院", "教师", "researcher", False, False),
-    ("u001", "演示研究生", "人文学院", "研究生", "user", False, False),
-    ("u002", "演示本科生", "人文学院", "本科生", "user", False, True),
+    ("r002", "研究员B", "政法与历史学院", "教师", "researcher", False, False),
+    ("u001", "研究生用户", "人文学院", "研究生", "user", False, False),
+    ("u002", "本科生用户", "人文学院", "本科生", "user", False, True),
     ("u003", "文博人员A", "某博物馆", "文博人员", "user", False, False),
 ]
 
@@ -120,7 +120,7 @@ DIALECTS = [  # 区县, 词条, IPA, 词义
     ("凤县", "曳", "iɛ˦", "拉、拽"), ("太白县", "心疼", "ɕiẽ˧˩ tʰəŋ", "漂亮、可爱"), ("眉县", "克里马擦", "kʰei li ma tsʰa", "快速、麻利"),
     ("陈仓区", "撒", "sa˥˧", "什么（疑问代词）"), ("凤翔区", "倭也", "uo˧˩ iɛ", "那里"), ("岐山县", "臊子", "sɔ˦ tsɿ", "肉丁浇头"),
 ]
-DIALECT_SRC = "示例数据（演示用），正式条目以团队调查建档为准"
+DIALECT_SRC = "样例条目（未经实地调查核验），正式条目以团队调查建档为准"
 
 CONCEPTS = [  # 类型, 名称, 描述
     ("义", "中国（天下之中）", "何尊铭“宅兹中或（国）”之“中国”，指天下之中、以洛邑（成周）一带为中心的地域，是方位地理概念，并非现代国家名称。"),
@@ -156,12 +156,15 @@ ADJ_SEED = [
 def seed_if_empty(db: Session):
     if db.scalar(select(User).limit(1)):
         return
+    initial_password = os.getenv("ZZ_BOOTSTRAP_PASSWORD", "")
+    if len(initial_password) < 12:
+        raise RuntimeError("首次初始化请设置 ZZ_BOOTSTRAP_PASSWORD（至少 12 位）；已有数据库不需要此变量")
     for k, label, v in points.DEFAULT_RULES:
         db.add(PointRule(key=k, label=label, value=v))
     users = {}
     for account, name, org, ident, role, sup, must in USERS:
         u = User(account=account, name=name, org=org, identity_type=ident, role=role, is_super=sup,
-                 must_change_pwd=must, password_hash=hash_password(DEMO_PASSWORD))
+                 must_change_pwd=must, password_hash=hash_password(initial_password))
         db.add(u)
         db.flush()
         users[account] = u

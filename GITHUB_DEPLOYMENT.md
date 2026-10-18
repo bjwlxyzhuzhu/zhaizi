@@ -12,12 +12,12 @@
 git clone https://github.com/bjwlxyzhuzhu/zhaizi.git
 cd zhaizi
 cp .env.example .env
-# 编辑 .env，将 ZZ_JWT_SECRET 替换为随机长字符串；按需配置模型。
+# 编辑 .env：设置随机 ZZ_JWT_SECRET；空数据卷首次启动还需设置至少 12 位 ZZ_BOOTSTRAP_PASSWORD。
 docker compose -f compose.ghcr.yml pull
 docker compose -f compose.ghcr.yml up -d
 ```
 
-访问 `http://服务器IP:8080`。修改 `.env` 中的 `ZZ_PORT` 可调整端口。首次启动使用源码中的演示种子数据，原机器的数据库和上传文件未打入镜像；需要迁移时另行备份和恢复 `/data`。模型密钥仅在运行环境或平台系统设置中配置。
+访问 `http://服务器IP:8080`。修改 `.env` 中的 `ZZ_PORT` 可调整端口。首次启动使用源码中的初始化资料，原机器的数据库和上传文件未打入镜像；需要迁移时另行备份和恢复 `/data`。已有数据库账号密码不会因升级改变。模型密钥仅在运行环境或管理后台“模型与 API 设置”中自行配置。
 
 若 GHCR 包设置为私有，拉取前需用具有 `read:packages` 权限的账号执行 `docker login ghcr.io`；若需匿名拉取，可由仓库所有者将容器包可见性设为 Public。
 
@@ -27,4 +27,4 @@ docker compose -f compose.ghcr.yml up -d
 
 前后端由同一 FastAPI 容器提供，数据默认使用持久卷内的 SQLite；可用原 Compose 文件的 `pg` profile 配置 PostgreSQL。Docker 镜像发布不等于已在某台服务器启动服务。
 
-演示账号见 README。向真实用户提供服务前须重置或停用演示账号，并设置运行环境密钥与访问策略。
+初始化账号见 README。源码不含预设登录密码。向真实用户提供服务前须重置或停用不需要的初始化账号，并设置运行环境密钥与访问策略。

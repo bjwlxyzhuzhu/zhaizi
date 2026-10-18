@@ -373,6 +373,38 @@ class SystemSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_bases"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    description: Mapped[str] = mapped_column(String(300), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    trained_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_documents"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    base_id: Mapped[int] = mapped_column(ForeignKey("knowledge_bases.id"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    content: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(500))
+    level: Mapped[str] = mapped_column(String(2), default="L1")
+    status: Mapped[str] = mapped_column(String(12), default="draft")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class KnowledgeTraining(Base):
+    __tablename__ = "knowledge_trainings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    base_id: Mapped[int] = mapped_column(ForeignKey("knowledge_bases.id"), index=True)
+    actor_name: Mapped[str] = mapped_column(String(40))
+    documents: Mapped[int] = mapped_column(Integer, default=0)
+    chunks: Mapped[int] = mapped_column(Integer, default=0)
+    elapsed_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
 class KPITarget(Base):
     __tablename__ = "kpi_targets"
     id: Mapped[int] = mapped_column(primary_key=True)

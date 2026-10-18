@@ -55,13 +55,22 @@ jobs:
 
       - name: Start test container
         run: |
+          BOOTSTRAP_PASSWORD=$(openssl rand -hex 24)
+          echo "::add-mask::$BOOTSTRAP_PASSWORD"
+          echo "ZZ_BOOTSTRAP_PASSWORD=$BOOTSTRAP_PASSWORD" >> "$GITHUB_ENV"
           docker run --detach --name zhaizi-smoke \
             --publish 127.0.0.1:18000:8000 \
             --env ZZ_JWT_SECRET="$(openssl rand -hex 32)" \
+            --env ZZ_BOOTSTRAP_PASSWORD="$BOOTSTRAP_PASSWORD" \
             zhaizi:smoke
 
       - name: Verify API, frontend and authentication
         run: python3 scripts/smoke_test.py http://127.0.0.1:18000
+
+      - name: Verify admin permissions, notifications and knowledge indexing
+        run: |
+          docker cp scripts/admin_features_test.py zhaizi-smoke:/tmp/admin_features_test.py
+          docker exec --env PYTHONPATH=/srv/backend zhaizi-smoke python /tmp/admin_features_test.py
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'

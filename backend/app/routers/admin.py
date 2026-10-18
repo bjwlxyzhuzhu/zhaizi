@@ -1,5 +1,6 @@
 import io
 import re
+import hashlib
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -7,7 +8,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import httpx
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -16,7 +18,7 @@ from ..config import EXPORT_DIR
 from ..db import get_db
 from ..deps import ROLE_LABEL, audit, client_ip, require, require_super
 from ..models import (AuditLog, ImportJob, KPITarget, PointLedger, PointRule, SystemSetting, TaskTemplate,
-                      TrustSample, User)
+                      TrustSample, User, Notification)
 from ..qa_engine import DEFAULT_SENSITIVE
 from ..security import encrypt_secret, decrypt_secret, hash_password, random_password
 
@@ -574,9 +576,10 @@ def _set(db, key, value):
 
 
 @router.get("/settings")
-def get_settings(me: User = Depends(require_super), db: Session = Depends(get_db)):
+def get_settings(me: User = Depends(admin_only), db: Session = Depends(get_db)):
     from .. import config
-    key = decrypt_secret(_setting(db, "model_api_key_enc")) or config.MODEL_API_KEY
+    stored = db.get(SystemSetting, "model_api_key_enc")
+    key = decrypt_secret(stored.value) if stored else config.MODEL_API_KEY
     return {"model_api_key_tail": ("****" + key[-4:]) if key else "", "model_base_url": _setting(db, "model_base_url", config.MODEL_BASE_URL),
             "model_name": _setting(db, "model_name", config.MODEL_NAME),
             "model_timeout": int(_setting(db, "model_timeout", str(config.MODEL_TIMEOUT))),
@@ -589,14 +592,22 @@ class SettingsIn(BaseModel):
     model_api_key: str | None = None
     model_base_url: str | None = None
     model_name: str | None = None
-    model_timeout: int | None = None
-    price_in: float | None = None
-    price_out: float | None = None
+    model_timeout: int | None = Field(default=None, ge=5, le=120)
+    price_in: float | None = Field(default=None, ge=0)
+    price_out: float | None = Field(default=None, ge=0)
     sensitive_words: str | None = None
 
 
 @router.put("/settings")
-def put_settings(body: SettingsIn, request: Request, me: User = Depends(require_super), db: Session = Depends(get_db)):
+def put_settings(body: SettingsIn, request: Request, me: User = Depends(admin_only), db: Session = Depends(get_db)):
+    if body.model_base_url is not None:
+        from ..llm import normalize_base_url
+        try:
+            body.model_base_url = normalize_base_url(body.model_base_url)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+    if body.model_name is not None and not body.model_name.strip():
+        raise HTTPException(400, "模型名称不能为空")
     changed = []
     if body.model_api_key is not None:
         key = body.model_api_key.strip()
@@ -610,6 +621,103 @@ def put_settings(body: SettingsIn, request: Request, me: User = Depends(require_
     audit(db, me, "系统设置修改", "system_settings", {"fields": changed}, client_ip(request))
     db.commit()
     return {"ok": True}
+
+
+class ModelProbeIn(BaseModel):
+    model_api_key: str | None = None
+    model_base_url: str | None = None
+
+
+@router.post("/settings/models")
+def available_models(body: ModelProbeIn, me: User = Depends(admin_only)):
+    from ..llm import normalize_base_url, runtime_settings
+    settings = runtime_settings()
+    key = (body.model_api_key or "").strip() or settings["api_key"]
+    if not key:
+        raise HTTPException(400, "请先输入 API 密钥，或保存密钥后再读取模型")
+    try:
+        base = normalize_base_url(body.model_base_url or settings["base_url"])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    try:
+        response = httpx.get(base + "/models", headers={"Authorization": f"Bearer {key}"}, timeout=15, follow_redirects=False)
+        if response.status_code != 200:
+            raise HTTPException(502, f"模型列表读取失败（上游状态 {response.status_code}），请检查接口地址、密钥及分组权限")
+        payload = response.json()
+        models = sorted({item["id"] for item in payload["data"] if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"]})
+    except httpx.TimeoutException:
+        raise HTTPException(504, "连接超时，请检查接口地址")
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        raise HTTPException(502, "无法读取 OpenAI 兼容模型列表，请检查接口地址与服务状态")
+    return {"models": models, "base_url": base}
+
+
+class NoticeAudience(BaseModel):
+    audience: str = "users"
+    user_ids: list[int] = Field(default_factory=list, max_length=2000)
+    role: str = ""
+    org: str = ""
+    identity_type: str = ""
+
+
+class NoticeIn(NoticeAudience):
+    title: str = Field(min_length=1, max_length=120)
+    body: str = Field(min_length=1, max_length=300)
+    recipient_signature: str
+
+
+def _notice_recipients(db: Session, spec: NoticeAudience):
+    stmt = select(User).where(User.status == "active")
+    if spec.audience == "users":
+        if not spec.user_ids:
+            raise HTTPException(400, "请选择至少一名用户")
+        stmt = stmt.where(User.id.in_(set(spec.user_ids)))
+    elif spec.audience == "group":
+        if not (spec.role or spec.org or spec.identity_type):
+            raise HTTPException(400, "请选择至少一个群体条件；全站通知请明确选择全体用户")
+        if spec.role:
+            if spec.role not in ROLE_LABEL:
+                raise HTTPException(400, "无效的用户角色")
+            stmt = stmt.where(User.role == spec.role)
+        if spec.org:
+            stmt = stmt.where(User.org == spec.org)
+        if spec.identity_type:
+            stmt = stmt.where(User.identity_type == spec.identity_type)
+    elif spec.audience != "all":
+        raise HTTPException(400, "无效的通知范围")
+    users = db.scalars(stmt.order_by(User.id)).all()
+    signature = hashlib.sha256(",".join(str(u.id) for u in users).encode()).hexdigest()
+    return users, signature
+
+
+@router.post("/notifications/preview")
+def notice_preview(body: NoticeAudience, me: User = Depends(admin_only), db: Session = Depends(get_db)):
+    users, signature = _notice_recipients(db, body)
+    return {"count": len(users), "recipient_signature": signature,
+            "sample": [{"id": u.id, "name": u.name, "account": u.account, "org": u.org} for u in users[:10]]}
+
+
+@router.post("/notifications/send")
+def send_notice(body: NoticeIn, request: Request, me: User = Depends(admin_only), db: Session = Depends(get_db)):
+    if not body.title.strip() or not body.body.strip():
+        raise HTTPException(400, "通知标题与内容不能为空")
+    users, signature = _notice_recipients(db, body)
+    if body.recipient_signature != signature:
+        raise HTTPException(409, "收件人已变化，请重新预览后发送")
+    if not users:
+        raise HTTPException(400, "没有符合条件的启用用户")
+    db.add_all([Notification(user_id=u.id, kind="announcement", title=body.title.strip(), body=body.body.strip()) for u in users])
+    audit(db, me, "发送站内通知", body.title.strip(),
+          {**body.model_dump(include={"audience", "user_ids", "role", "org", "identity_type"}), "count": len(users)}, client_ip(request))
+    db.commit()
+    return {"sent": len(users)}
+
+
+@router.get("/notifications/history")
+def notice_history(me: User = Depends(admin_only), db: Session = Depends(get_db)):
+    logs = db.scalars(select(AuditLog).where(AuditLog.action == "发送站内通知").order_by(AuditLog.id.desc()).limit(30)).all()
+    return [{"id": a.id, "title": a.target, "by": a.actor_name, "count": a.detail.get("count", 0),
+             "audience": a.detail.get("audience"), "created_at": a.created_at.isoformat(timespec="minutes")} for a in logs]
 
 
 # ---------------- 考核指标目标值（DASH-7）与抽检记录 ----------------
@@ -629,10 +737,10 @@ def put_kpi(kid: int, body: dict, request: Request, me: User = Depends(admin_onl
 
 
 class SampleIn(BaseModel):
-    sampled: int
-    accurate: int
-    claims: int
-    unsourced_claims: int
+    sampled: int = Field(gt=0)
+    accurate: int = Field(ge=0)
+    claims: int = Field(ge=0)
+    unsourced_claims: int = Field(ge=0)
     note: str = ""
 
 

@@ -6,11 +6,11 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import UPLOAD_DIR
 from .db import Base, SessionLocal, engine
-from .routers import admin, auth, dash, kg, lib, qa, res, tasks
+from .routers import admin, agents, auth, dash, kg, lib, qa, res, tasks
 
 app = FastAPI(title="宅兹·周秦出土文献智能研究平台", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
-for r in (auth.router, admin.router, qa.router, lib.router, res.router, kg.router, tasks.router, dash.router):
+for r in (auth.router, admin.router, agents.router, qa.router, lib.router, res.router, kg.router, tasks.router, dash.router):
     app.include_router(r, prefix="/api")
 
 
@@ -21,6 +21,8 @@ def startup():
     db = SessionLocal()
     try:
         seed_if_empty(db)
+        from .maintenance import refresh_initial_labels
+        refresh_initial_labels(db)
     finally:
         db.close()
 

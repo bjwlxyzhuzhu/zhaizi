@@ -61,7 +61,13 @@ def _index(db: Session):
         return _cache
 
 
-def search(db: Session, query: str, *, k: int = 12, allow_levels=("L1",), include_pending=False):
+def prepare_index(db: Session):
+    """Eagerly compute term frequencies and IDF after a committed rebuild."""
+    bump()
+    return len(_index(db)["docs"])
+
+
+def search(db: Session, query: str, *, k: int = 12, allow_levels=("L1",), include_pending=False, collections=None, knowledge_doc_ids=None):
     """返回 (命中条目列表, 是否有内部资料因分级被排除)。"""
     idx = _index(db)
     q = Counter(grams(query))
@@ -72,6 +78,12 @@ def search(db: Session, query: str, *, k: int = 12, allow_levels=("L1",), includ
     scored = []
     excluded_internal = False
     for c, tf in idx["docs"]:
+        if collections is not None:
+            if c.ref_table == "knowledge_documents":
+                if c.ref_id not in (knowledge_doc_ids or set()):
+                    continue
+            elif c.ref_table not in collections:
+                continue
         if c.status != "approved" and not include_pending:
             continue
         s = 0.0

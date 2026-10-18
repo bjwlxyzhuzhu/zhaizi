@@ -17,7 +17,7 @@ export function Grade({ g }: { g?: string }) {
 export const GRADE_TEXT: Record<string, string> = {
   A: '原器或拓片',
   B: '权威著录释文',
-  C: '学界异说',
+  C: '辅助资料或学界异说',
   D: '模型推测，未经核验',
 }
 

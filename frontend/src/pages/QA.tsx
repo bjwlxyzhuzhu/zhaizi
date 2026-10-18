@@ -156,7 +156,7 @@ export default function QA() {
         {/* 中：对话 */}
         <div className="panel qa-col">
           <div className="panel-head">
-            <span className="panel-title" style={{ fontSize: 26 }}>AI 可信问答</span>
+            <span className="panel-title" style={{ fontSize: 26 }}>文献问答智能体</span>
             <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span className="pill" style={{ borderColor: 'rgba(111,179,160,.5)', color: 'var(--patina)', background: 'rgba(63,143,122,.12)' }}>
                 <SafetyCertificateOutlined /> 引证核验已启用
@@ -174,7 +174,7 @@ export default function QA() {
             {!sid && messages.length === 0 && !sending && (
               <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 520 }}>
                 <div className="serif" style={{ fontSize: 24, marginBottom: 10 }}>只依据库内已审核条目作答</div>
-                <div className="note">每个判断后附引用角标与证据等级（A 原器拓片 · B 权威著录 · C 学界异说 · D 模型推测）。库内没有出处时，系统会明确回答“库内暂无相关资料”。</div>
+                <div className="note">每个判断后附引用角标与证据等级（A 原器拓片 · B 权威著录 · C 辅助资料或学界异说 · D 模型推测）。库内没有出处时，系统会明确回答“库内暂无相关资料”。</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 22 }}>
                   {['何尊铭文中“宅兹中国”应如何理解？', '大盂鼎记载了哪些赏赐？', '岐山方言里“宅”怎么读？', '唐代长安有多少人口？'].map((e) => (
                     <span key={e} className="chip" onClick={() => ask(e)}>{e}</span>
@@ -229,7 +229,7 @@ export default function QA() {
               </div>
             )}
             <div className="note" style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-              <span>AI辅助生成，请以引用条目和专家裁断为准。</span>
+              <span>智能体基于关联知识库辅助生成，请以引用条目和专家裁断为准。</span>
               <span>{user.role === 'user' ? `每次问答 −${afford?.cost ?? 1} 积分 · 失败自动退回` : '研究员/管理员调用不扣积分（记录影子消耗）'} · {health?.model}</span>
             </div>
           </div>

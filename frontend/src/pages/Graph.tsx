@@ -207,7 +207,7 @@ export default function Graph() {
                 <span><span className="gold" style={{ marginRight: 8 }}>器</span>{n.name}</span><span className="dim">↗</span>
               </div>
             ))}
-            <Button block className="btn-gold" style={{ marginTop: 18 }} onClick={() => runPath()}>以何尊演示路径模式</Button>
+            <Button block className="btn-gold" style={{ marginTop: 18 }} onClick={() => runPath()}>探索何尊关联路径</Button>
           </>
         ) : (
           <>

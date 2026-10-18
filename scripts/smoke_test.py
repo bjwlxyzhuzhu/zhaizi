@@ -1,5 +1,6 @@
 """Smoke-test a fresh demo container without external services or API keys."""
 import json
+import os
 import re
 import sys
 import time
@@ -34,7 +35,7 @@ assert asset, 'Built JavaScript asset is missing'
 assert len(request(asset[1])) > 100, 'Built asset is empty'
 assert 'id="root"' in request('/library/vessels'), 'SPA route fallback failed'
 
-login = json.loads(request('/api/auth/login', {'account': 'u001', 'password': 'Zhaizi2026'}))
+login = json.loads(request('/api/auth/login', {'account': 'u001', 'password': os.environ['ZZ_BOOTSTRAP_PASSWORD']}))
 assert login['access_token'], 'Login failed'
 assert login['user']['role'] == 'user', 'Unexpected demo role'
 assert json.loads(request('/api/auth/me', token=login['access_token']))['account'] == 'u001'

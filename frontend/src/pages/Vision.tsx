@@ -76,7 +76,7 @@ export default function Vision() {
   return (
     <div className="page">
       <PageHead
-        title="拓片图像释读"
+        title="拓片释读智能体"
         desc="上传授权拓片，自动建立“图像—候选字—文献证据—专家裁断”研究链路。"
         extra={<span className="tag-gold">{user.role === 'user' ? `每次释读 −${afford?.cost ?? 5} 积分，失败自动退回` : '研究员/管理员免积分'}</span>}
       />
@@ -117,7 +117,7 @@ export default function Vision() {
             <Radio value="public">公开资料</Radio>
             <Radio value="licensed">已获授权资料</Radio>
           </Radio.Group>
-          <div className="note" style={{ margin: '12px 0 18px' }}>只有完成来源声明的图片才可发送识读；未经许可的图像不用于公开演示。</div>
+          <div className="note" style={{ margin: '12px 0 18px' }}>只有完成来源声明的图片才可发送识读；未经许可的图像不用于公开展示。</div>
           <Input placeholder="可选：疑似字或上下文提示（如“宅”）" value={hint} onChange={(e) => setHint(e.target.value)} maxLength={10} style={{ marginBottom: 16 }} />
           {afford && !afford.ok ? (
             <div>
@@ -164,7 +164,7 @@ export default function Vision() {
             ))}
           </div>
           <div className="note" style={{ marginTop: 14 }}>
-            候选仅用于辅助识读，不能替代文献校勘和专家判断。{candidates[0]?.reason?.includes('演示') && '当前为演示模型：候选来自字形库相近字，未经视觉识别。'}
+            候选仅用于辅助识读，不能替代文献校勘和专家判断。{candidates[0]?.reason?.includes('未经视觉识别') && '当前候选来自字形库相近字，未经视觉识别。'}
           </div>
         </div>
 

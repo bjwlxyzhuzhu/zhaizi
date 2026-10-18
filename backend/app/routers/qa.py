@@ -48,7 +48,7 @@ def check(action: str, u: User = Depends(current_user), db: Session = Depends(ge
 # ---------------- 会话 ----------------
 def _msg(m: QAMessage) -> dict:
     return {"id": m.id, "role": m.role, "content": m.content, "segments": m.segments, "citations": m.citations,
-            "verify": m.verify, "status": m.status, "model": m.model, "latency_ms": m.latency_ms,
+            "verify": m.verify, "status": m.status, "model": m.model.replace("演示模型", "库内检索摘引"), "latency_ms": m.latency_ms,
             "cost_points": m.cost_points, "excluded_internal": m.excluded_internal, "candidates": m.candidates,
             "image_url": f"/api/files/{m.image_path}" if m.image_path else "",
             "created_at": m.created_at.isoformat(timespec="seconds")}
@@ -105,6 +105,8 @@ class AskIn(BaseModel):
 def _run_answer(db: Session, u: User, s: QASession, question: str, action: str, *, image_rel: str = "",
                 image_data_url: str | None = None, extra_query: str = "", candidates: list | None = None):
     """统一执行：预扣 → 安全 → 检索 → 模型 → 核验 → 安全 → 结算。"""
+    from .agents import scope_for
+    collections, doc_ids = scope_for(db, "vision" if action == "vision" else "text")
     hold = points.Hold(u, action)
     hold.freeze()  # 余额不足抛 402
     shadow_cost = points.rule(db, points.ACTION_RULE[action])
@@ -118,7 +120,7 @@ def _run_answer(db: Session, u: User, s: QASession, question: str, action: str, 
     ans = QAMessage(session_id=s.id, role="assistant")
     try:
         qa_engine.check_safety(db, question)
-        chunks, excluded = retrieval.search(db, question + " " + extra_query, k=RETRIEVAL_TOP_K)
+        chunks, excluded = retrieval.search(db, question + " " + extra_query, k=RETRIEVAL_TOP_K, collections=collections, knowledge_doc_ids=doc_ids)
         history = []
         prev = db.scalars(select(QAMessage).where(QAMessage.session_id == s.id, QAMessage.id < user_msg.id,
                                                   QAMessage.status == "ok").order_by(QAMessage.id.desc())
@@ -303,7 +305,7 @@ def chunk_detail(cid: str, u: User = Depends(current_user), db: Session = Depend
     c = db.scalar(select(Chunk).where(Chunk.cid == cid))
     if not c:
         raise HTTPException(404, "条目不存在")
-    if c.level == "L3" and u.role == "user":
+    if u.role == "user" and (c.level != "L1" or c.status != "approved"):
         raise HTTPException(404, "条目不存在")
     ref_table, ref_id = c.ref_table, c.ref_id
     if ref_table == "inscriptions":

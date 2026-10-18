@@ -29,6 +29,8 @@ const AdminRules = lazy(() => import('./pages/admin/Rules'))
 const AdminTasks = lazy(() => import('./pages/admin/TaskTemplates'))
 const AdminAudit = lazy(() => import('./pages/admin/Audit'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
+const AdminNotifications = lazy(() => import('./pages/admin/Notifications'))
+const AdminAgents = lazy(() => import('./pages/admin/Agents'))
 
 const Loading = () => (
   <div style={{ height: '60vh', display: 'grid', placeItems: 'center' }}>
@@ -93,6 +95,8 @@ export default function App() {
           <Route path="/admin/tasks" element={G(<AdminTasks />, can.admin)} />
           <Route path="/admin/audit" element={G(<AdminAudit />, can.admin)} />
           <Route path="/admin/settings" element={G(<AdminSettings />, can.admin)} />
+          <Route path="/admin/notifications" element={G(<AdminNotifications />, can.admin)} />
+          <Route path="/admin/agents" element={G(<AdminAgents />, can.admin)} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
