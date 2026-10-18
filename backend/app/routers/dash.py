@@ -1,14 +1,15 @@
 """数据驾驶舱（PRD §5.9，指标口径见附录C）。"""
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import current_user, require
 from ..models import (Adjudication, AuditLog, DialectEntry, Glyph, KGEdge, KGNode, KPITarget, PointLedger, QAMessage,
-                      SystemSetting, TaskSubmission, TrustSample, UsageLog, User, Vessel)
+                      SystemSetting, TaskSubmission, TrustSample, UsageLog, User, Vessel, TextPassage,
+                      Inscription, KnowledgeBase, KnowledgeDocument, KnowledgeTraining, Chunk, Notification)
 
 router = APIRouter(prefix="/dash", tags=["驾驶舱"])
 DISTRICTS = ["渭滨区", "金台区", "陈仓区", "凤翔区", "岐山县", "扶风县", "眉县", "陇县", "千阳县", "麟游县", "凤县", "太白县"]
@@ -108,7 +109,7 @@ def progress(u: User = Depends(require("admin", "researcher")), db: Session = De
 
 
 @router.get("/ops")
-def ops(u: User = Depends(require("admin")), db: Session = Depends(get_db)):
+def ops(days: int = Query(default=14, ge=7, le=30), u: User = Depends(require("admin")), db: Session = Depends(get_db)):
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     users = db.scalars(select(User)).all()
     by_role = {}
@@ -119,7 +120,7 @@ def ops(u: User = Depends(require("admin")), db: Session = Depends(get_db)):
     dau = db.scalar(select(func.count(func.distinct(AuditLog.actor_id))).where(AuditLog.action == "登录", AuditLog.created_at >= today)) or 0
     new_today = _count(db, User, User.created_at >= today)
     dau_trend = []
-    for i in range(13, -1, -1):
+    for i in range(days - 1, -1, -1):
         d0 = today - timedelta(days=i)
         n = db.scalar(select(func.count(func.distinct(AuditLog.actor_id))).where(
             AuditLog.action == "登录", AuditLog.created_at >= d0, AuditLog.created_at < d0 + timedelta(days=1))) or 0
@@ -128,14 +129,9 @@ def ops(u: User = Depends(require("admin")), db: Session = Depends(get_db)):
     granted = -sumt("GRANT", "IMPORT")
     task_reward = -sumt("TASK_REWARD")
     consumed = sumt("CONSUME")
-    balances = {}
-    for (uid, bal) in db.execute(select(PointLedger.user_id, func.sum(PointLedger.amount)).group_by(PointLedger.user_id)):
-        b = int(bal)
-        k = "0" if b <= 0 else "1-49" if b < 50 else "50-99" if b < 100 else "100-199" if b < 200 else "200+"
-        balances[k] = balances.get(k, 0) + 1
     calls = db.execute(select(UsageLog.role, UsageLog.action, func.count(), func.sum(UsageLog.tokens_in), func.sum(UsageLog.tokens_out),
                               func.avg(UsageLog.latency_ms), func.sum(case((UsageLog.success.is_(False), 1), else_=0)))
-                       .group_by(UsageLog.role, UsageLog.action)).all()
+                       .where(UsageLog.action.in_(("qa", "vision"))).group_by(UsageLog.role, UsageLog.action)).all()
     s = {r.key: r.value for r in db.scalars(select(SystemSetting))}
     pin, pout = float(s.get("price_in", "0.0024")), float(s.get("price_out", "0.0096"))  # 元/千token，可在系统设置配置
     total_calls = sum(c[2] for c in calls)
@@ -146,6 +142,29 @@ def ops(u: User = Depends(require("admin")), db: Session = Depends(get_db)):
     subs_ok = _count(db, TaskSubmission, TaskSubmission.status == "approved")
     reviewed = db.scalars(select(TaskSubmission).where(TaskSubmission.reviewed_at.is_not(None))).all()
     avg_review_h = round(sum((x.reviewed_at - x.created_at).total_seconds() for x in reviewed) / len(reviewed) / 3600, 1) if reviewed else 0
+    asset_types = [("器铭", Vessel), ("铭文", Inscription), ("字形", Glyph), ("方言", DialectEntry), ("传世文献", TextPassage)]
+    asset_counts = [{"name": name, "value": _count(db, model, model.status == "approved")} for name, model in asset_types]
+    asset_pending = sum(_count(db, model, model.status == "pending") for _, model in asset_types)
+    bases = db.scalars(select(KnowledgeBase)).all()
+    documents = _count(db, KnowledgeDocument)
+    published = _count(db, KnowledgeDocument, KnowledgeDocument.status == "approved")
+    from .agents import AGENTS, agent_config
+    agents = [{"id": key, "name": spec["name"], **agent_config(db, key)} for key, spec in AGENTS.items()]
+    events = db.scalars(select(AuditLog).order_by(AuditLog.id.desc()).limit(8)).all()
+    district_counts = dict(db.execute(select(Vessel.district, func.count()).where(Vessel.status == "approved").group_by(Vessel.district)).all())
+    notification_total = _count(db, Notification)
+    notification_read = _count(db, Notification, Notification.read.is_(True))
+    pending_tasks = _count(db, TaskSubmission, TaskSubmission.status == "pending")
+    task_status = [{"name": label, "value": _count(db, TaskSubmission, TaskSubmission.status == status)}
+                   for status, label in [("pending", "待审核"), ("approved", "已通过"), ("rejected", "已驳回")]]
+    # Count all users, including those without ledger rows, in balance distribution.
+    balance_by_user = dict(db.execute(select(PointLedger.user_id, func.sum(PointLedger.amount)).group_by(PointLedger.user_id)).all())
+    balances = {}
+    for user in users:
+        amount = int(balance_by_user.get(user.id, 0))
+        band = "0" if amount <= 0 else "1-49" if amount < 50 else "50-99" if amount < 100 else "100-199" if amount < 200 else "200+"
+        balances[band] = balances.get(band, 0) + 1
+    from ..llm import model_label
     return {
         "users": {"total": len(users), "by_role": by_role, "by_org": dict(sorted(by_org.items(), key=lambda x: -x[1])[:8]),
                   "dau": dau, "new_today": new_today, "dau_trend": dau_trend},
@@ -157,7 +176,23 @@ def ops(u: User = Depends(require("admin")), db: Session = Depends(get_db)):
                   "tokens_in": tin, "tokens_out": tout, "cost": round(tin / 1000 * pin + tout / 1000 * pout, 2),
                   "by_role": [{"role": c[0], "action": c[1], "calls": c[2]} for c in calls]},
         "tasks": {"submitted": subs_total, "pass_rate": round(subs_ok / subs_total * 100, 1) if subs_total else 0,
-                  "avg_review_hours": avg_review_h},
-        "trend": qa_trend(db, 14),
+                  "avg_review_hours": avg_review_h, "pending": pending_tasks, "by_status": task_status},
+        "trend": qa_trend(db, days),
         "answers": _count(db, QAMessage, QAMessage.role == "assistant"),
+        "assets": {"by_type": asset_counts, "total": sum(a["value"] for a in asset_counts), "pending": asset_pending,
+                   "kg_nodes": _count(db, KGNode), "kg_edges": _count(db, KGEdge),
+                   "districts": [{"name": name, "value": district_counts.get(name, 0)} for name in DISTRICTS]},
+        "knowledge": {"bases": len(bases), "documents": documents, "published": published,
+                      "chunks": _count(db, Chunk, Chunk.status == "approved", Chunk.level == "L1"),
+                      "training_runs": _count(db, KnowledgeTraining),
+                      "by_level": [{"name": level, "value": _count(db, Chunk, Chunk.status == "approved", Chunk.level == level)} for level in ("L1", "L2", "L3")],
+                      "agents": [{"id": a["id"], "name": a["name"], "enabled": a["enabled"], "collections": len(a["collections"]),
+                                  "bases": len(a["knowledge_base_ids"])} for a in agents]},
+        "queues": {"assets": asset_pending, "tasks": pending_tasks,
+                   "adjudications": _count(db, Adjudication, Adjudication.status == "pending")},
+        "notifications": {"total": notification_total, "read": notification_read,
+                          "unread": notification_total - notification_read},
+        "trust": trust_metrics(db), "model_name": model_label(),
+        "events": [{"id": event.id, "action": event.action, "target": event.target, "at": event.created_at.isoformat(timespec="minutes")} for event in events],
+        "days": days, "updated_at": datetime.now().isoformat(timespec="seconds"),
     }

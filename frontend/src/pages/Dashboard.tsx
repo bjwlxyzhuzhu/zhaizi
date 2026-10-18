@@ -1,18 +1,18 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { App, Button, ConfigProvider, Form, InputNumber, Modal, Progress, Spin, Table, Tag } from 'antd'
+import { App, Button, Form, InputNumber, Modal, Progress, Spin, Table } from 'antd'
 import { FullscreenOutlined, PauseOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { api } from '../api'
 import { useAuth, useSite } from '../store'
 import EChart, { AXIS } from '../components/EChart'
 import type { District } from '../three/BaojiTerrain'
 import { imgUrl } from '../components/ui'
-import { paperTheme } from '../theme'
 
 const BaojiTerrain = lazy(() => import('../three/BaojiTerrain'))
 const StarGraph = lazy(() => import('../three/StarGraph'))
 const GlyphMorph = lazy(() => import('../three/GlyphMorph'))
+const OpsDashboard = lazy(() => import('./OpsDashboard'))
 
 function CountUp({ value, suffix = '' }: { value: number | null | undefined; suffix?: string }) {
   const [v, setV] = useState(0)
@@ -237,85 +237,6 @@ function ProgressView() {
   )
 }
 
-function OpsView() {
-  const { data } = useQuery({ queryKey: ['dash-ops'], queryFn: () => api.get('/dash/ops'), refetchInterval: 60_000 })
-  const { data: geography } = useQuery({ queryKey: ['dash-screen'], queryFn: () => api.get('/dash/screen'), refetchInterval: 30_000 })
-  const [picked, setPicked] = useState<District | null>(null)
-  const nav = useNavigate()
-  if (!data) return <Spin />
-  const ROLE: Record<string, string> = { admin: '管理员', researcher: '研究员', user: '用户' }
-  const pie = (obj: Record<string, number>, map: Record<string, string> = {}) => ({
-    tooltip: { trigger: 'item' },
-    color: ['#3F8F7A', '#C9A45C', '#6FB3A0', '#B5452F', '#8C7AA6', '#DCE6F0'],
-    series: [{ type: 'pie', radius: ['48%', '72%'], label: { color: '#9aa39e' }, data: Object.entries(obj).map(([k, v]) => ({ name: map[k] || k, value: v })) }],
-  })
-  const bar = (labels: string[], values: number[], color = '#3F8F7A') => ({
-    grid: { left: 40, right: 10, top: 14, bottom: 46 }, tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: labels, ...AXIS, axisLabel: { ...AXIS.axisLabel, rotate: labels.some((l) => l.length > 5) ? 25 : 0 } },
-    yAxis: { type: 'value', minInterval: 1, ...AXIS }, series: [{ type: 'bar', data: values, itemStyle: { color, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 34 }],
-  })
-  const Stat = ({ v, l }: { v: any; l: string }) => <div className="stat-card"><div className="stat-num">{v}</div><div className="stat-label">{l}</div></div>
-  return (
-    <div className="page paper ops-view">
-      <div className="ops-heading"><div><small>ZHOU & QIN · DIGITAL RESEARCH</small><h1>宅兹 · 宝鸡数智研究态势</h1><p>周秦文脉 / 关陇文化 / 研究服务运营</p></div><span>平台记录实时汇总 · 每分钟更新</span></div>
-      <div className="ops-hero">
-        <div className="ops-geography">
-          <div className="ops-map-title"><span>宝鸡市域 · 文化资源分布</span><small>器铭资料 / 区县汇总</small></div>
-          <Suspense fallback={<Spin />}><BaojiTerrain districts={geography?.districts || []} light onPick={setPicked} /></Suspense>
-          <div className="ops-map-stats"><Stat v={geography?.metrics.vessels ?? '—'} l="已审核器铭" /><Stat v={geography?.metrics.dialects ?? '—'} l="方言条目" /><Stat v={geography?.metrics.kg_nodes ?? '—'} l="知识实体" /></div>
-          {picked && <div className="ops-pick"><button onClick={() => setPicked(null)} aria-label="关闭区县详情">×</button><b>{picked.name} · {picked.count} 件已审核器铭</b>{picked.vessels.map(v => <a key={v.id} onClick={() => nav(`/library/vessels/${v.id}`)}>{v.name} →</a>)}</div>}
-        </div>
-        <aside className="ops-summary"><h2>核心运营指标</h2>
-          <div className="ops-kpi"><span>注册用户</span><b>{data.users.total}<small>人</small></b></div>
-          <div className="ops-kpi"><span>今日活跃</span><b>{data.users.dau}<small>人</small></b></div>
-          <div className="ops-kpi"><span>今日新增</span><b>{data.users.new_today}<small>人</small></b></div>
-          <div className="ops-kpi"><span>模型调用</span><b>{data.model.calls}<small>次</small></b></div>
-          <div className="ops-kpi"><span>调用失败率</span><b>{data.model.calls ? `${data.model.fail_rate}%` : '暂无数据'}</b></div>
-          <div className="ops-kpi"><span>估算费用</span><b>¥{data.model.cost}</b></div>
-          <div className="ops-mini-title">近 14 天日活</div><EChart height={155} option={bar(data.users.dau_trend.map((d: any) => d.date.slice(5)), data.users.dau_trend.map((d: any) => d.dau), '#a4c9ac')} />
-          <p>指标来自平台账号、调用和审核记录；费用按配置单价估算。</p>
-        </aside>
-      </div>
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-        <div className="panel"><div className="panel-title">分角色用户</div><EChart option={pie(data.users.by_role, ROLE)} /></div>
-        <div className="panel"><div className="panel-title">分单位用户</div><EChart option={bar(Object.keys(data.users.by_org), Object.values(data.users.by_org) as number[])} /></div>
-        <div className="panel"><div className="panel-title">近 14 天日活</div><EChart option={bar(data.users.dau_trend.map((d: any) => d.date.slice(5)), data.users.dau_trend.map((d: any) => d.dau), '#6FB3A0')} /></div>
-        <div className="panel">
-          <div className="panel-title" style={{ marginBottom: 12 }}>积分</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Stat v={data.points.granted} l="发放总量（含导入）" /><Stat v={data.points.consumed} l="消耗总量（不含退回）" />
-            <Stat v={data.points.task_reward} l="任务奖励" /><Stat v={`${data.points.task_ratio}%`} l="任务奖励占比" />
-          </div>
-        </div>
-        <div className="panel"><div className="panel-title">余额分布</div><EChart option={bar(Object.keys(data.points.balance_dist), Object.values(data.points.balance_dist) as number[], '#C9A45C')} /></div>
-        <div className="panel">
-          <div className="panel-title" style={{ marginBottom: 12 }}>模型</div>
-          <div className="row-line"><span className="dim">平均延迟</span><span>{data.model.avg_latency} ms</span></div>
-          <div className="row-line"><span className="dim">输入 / 输出 token</span><span>{data.model.tokens_in} / {data.model.tokens_out}</span></div>
-          {data.model.by_role.map((r: any) => (
-            <div key={r.role + r.action} className="row-line"><span><Tag>{ROLE[r.role]}</Tag>{{ qa: '文字问答', vision: '图像释读', export: '导出报告' }[r.action as string] || r.action}</span><span>{r.calls} 次{r.role !== 'user' ? '（影子消耗）' : ''}</span></div>
-          ))}
-        </div>
-        <div className="panel">
-          <div className="panel-title" style={{ marginBottom: 12 }}>任务</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <Stat v={data.tasks.submitted} l="提交量" /><Stat v={`${data.tasks.pass_rate}%`} l="通过率" /><Stat v={`${data.tasks.avg_review_hours}h`} l="平均审核时长" />
-          </div>
-        </div>
-        <div className="panel" style={{ gridColumn: 'span 2' }}>
-          <div className="panel-title">近 14 天 AI 调用</div>
-          <EChart option={{
-            grid: { left: 36, right: 10, top: 30, bottom: 24 }, tooltip: { trigger: 'axis' }, legend: { textStyle: { color: '#9aa39e' } },
-            xAxis: { type: 'category', data: data.trend.map((d: any) => d.date.slice(5)), ...AXIS }, yAxis: { type: 'value', minInterval: 1, ...AXIS },
-            series: [{ name: '问答', type: 'line', smooth: true, data: data.trend.map((d: any) => d.qa), lineStyle: { color: '#6fb3a0' }, itemStyle: { color: '#6fb3a0' } },
-              { name: '图像释读', type: 'line', smooth: true, data: data.trend.map((d: any) => d.vision), lineStyle: { color: '#c9a45c' }, itemStyle: { color: '#c9a45c' } }],
-          }} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function Dashboard() {
   const user = useAuth((s) => s.user)!
   const [params, setParams] = useSearchParams()
@@ -323,14 +244,14 @@ export default function Dashboard() {
   const views = [['screen', '大屏视图'], ['progress', '建设进度'], ...(user.role === 'admin' ? [['ops', '运营视图']] : [])]
   return (
     <div>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 50px', borderBottom: '1px solid var(--line)', height: 64 }}>
+      <div className="dashboard-tabs">
         {views.map(([k, t]) => <span key={k} className={`chip ${view === k ? 'on' : ''}`} onClick={() => setParams({ view: k })}>{t}</span>)}
         <span style={{ flex: 1 }} />
-        {view === 'screen' && (
-          <Button icon={<FullscreenOutlined />} onClick={() => document.getElementById('screen-root')?.requestFullscreen?.()}>全屏（F11 亦可）</Button>
+        {(view === 'screen' || view === 'ops') && (
+          <Button icon={<FullscreenOutlined />} onClick={() => document.getElementById(view === 'ops' ? 'ops-root' : 'screen-root')?.requestFullscreen?.()}>全屏<span className="fullscreen-hint">（F11 亦可）</span></Button>
         )}
       </div>
-      {view === 'screen' ? <ScreenView /> : view === 'progress' ? <ProgressView /> : user.role === 'admin' ? <ConfigProvider theme={paperTheme}><OpsView /></ConfigProvider> : null}
+      {view === 'screen' ? <ScreenView /> : view === 'progress' ? <ProgressView /> : user.role === 'admin' ? <OpsDashboard /> : null}
     </div>
   )
 }
