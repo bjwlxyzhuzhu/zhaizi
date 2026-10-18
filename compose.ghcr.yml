@@ -1,0 +1,12 @@
+services:
+  zhaizi:
+    image: ghcr.io/bjwlxyzhuzhu/zhaizi:${ZZ_IMAGE_TAG:-latest}
+    ports:
+      - "${ZZ_PORT:-8080}:8000"
+    env_file: .env
+    volumes:
+      - zhaizi-data:/data
+    restart: unless-stopped
+
+volumes:
+  zhaizi-data:
