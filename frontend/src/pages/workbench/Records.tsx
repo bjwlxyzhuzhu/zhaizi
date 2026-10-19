@@ -1,5 +1,6 @@
 import { RareText } from '../../components/RareText'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { App, Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag, Upload } from 'antd'
 import { DownloadOutlined, HistoryOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
@@ -42,8 +43,9 @@ export default function Records() {
   const user = useAuth((s) => s.user)!
   const readonly = user.role !== 'researcher'
   const { message } = App.useApp()
-  const [table, setTable] = useState<string>('vessels')
-  const [status, setStatus] = useState('pending')
+  const [params] = useSearchParams()
+  const [table, setTable] = useState<string>(() => TABLES.some(([key]) => key === params.get('table')) ? params.get('table')! : 'vessels')
+  const [status, setStatus] = useState(() => ['pending', 'approved', 'rejected', ''].includes(params.get('status') ?? 'pending') ? params.get('status') ?? 'pending' : 'pending')
   const [mine, setMine] = useState(false)
   const [edit, setEdit] = useState<any>(null) // {id?, data}
   const [versions, setVersions] = useState<any>(null)

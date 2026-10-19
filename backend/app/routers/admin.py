@@ -2,6 +2,7 @@ import io
 import re
 import hashlib
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -578,42 +579,49 @@ def _set(db, key, value):
 @router.get("/settings")
 def get_settings(me: User = Depends(admin_only), db: Session = Depends(get_db)):
     from .. import config
+    from ..llm import PROVIDERS, normalize_base_url, provider_for_url
     stored = db.get(SystemSetting, "model_api_key_enc")
     key = decrypt_secret(stored.value) if stored else config.MODEL_API_KEY
+    base = normalize_base_url(_setting(db, "model_base_url", config.MODEL_BASE_URL))
     return {"model_api_key_tail": ("****" + key[-4:]) if key else "", "model_base_url": _setting(db, "model_base_url", config.MODEL_BASE_URL),
+            "model_provider": _setting(db, "model_provider", provider_for_url(base)), "providers": PROVIDERS,
             "model_name": _setting(db, "model_name", config.MODEL_NAME),
             "model_timeout": int(_setting(db, "model_timeout", str(config.MODEL_TIMEOUT))),
-            "price_in": float(_setting(db, "price_in", "0.0024")), "price_out": float(_setting(db, "price_out", "0.0096")),
             "allow_l2_cloud": False, "allow_l2_cloud_locked": True,
             "sensitive_words": _setting(db, "sensitive_words", ",".join(DEFAULT_SENSITIVE))}
 
 
 class SettingsIn(BaseModel):
+    model_provider: Literal["tokenone", "openai", "deepseek", "dashscope", "custom"] | None = None
     model_api_key: str | None = None
     model_base_url: str | None = None
     model_name: str | None = None
     model_timeout: int | None = Field(default=None, ge=5, le=120)
-    price_in: float | None = Field(default=None, ge=0)
-    price_out: float | None = Field(default=None, ge=0)
     sensitive_words: str | None = None
 
 
 @router.put("/settings")
 def put_settings(body: SettingsIn, request: Request, me: User = Depends(admin_only), db: Session = Depends(get_db)):
+    from ..llm import runtime_settings
+    current = runtime_settings()
     if body.model_base_url is not None:
         from ..llm import normalize_base_url
         try:
             body.model_base_url = normalize_base_url(body.model_base_url)
         except ValueError as e:
             raise HTTPException(400, str(e))
+        if body.model_base_url != current["base_url"] and current["api_key"] and body.model_api_key is None:
+            raise HTTPException(400, "切换接口地址时请填写对应密钥，或先清除原密钥")
     if body.model_name is not None and not body.model_name.strip():
         raise HTTPException(400, "模型名称不能为空")
+    if body.model_name is not None:
+        body.model_name = body.model_name.strip()
     changed = []
     if body.model_api_key is not None:
         key = body.model_api_key.strip()
         _set(db, "model_api_key_enc", encrypt_secret(key) if key else "")
         changed.append("model_api_key")
-    for k in ("model_base_url", "model_name", "model_timeout", "price_in", "price_out", "sensitive_words"):
+    for k in ("model_provider", "model_base_url", "model_name", "model_timeout", "sensitive_words"):
         v = getattr(body, k)
         if v is not None:
             _set(db, k, str(v))
@@ -639,6 +647,8 @@ def available_models(body: ModelProbeIn, me: User = Depends(admin_only)):
         base = normalize_base_url(body.model_base_url or settings["base_url"])
     except ValueError as e:
         raise HTTPException(400, str(e))
+    if base != settings["base_url"] and not (body.model_api_key or "").strip():
+        raise HTTPException(400, "切换接口地址时请填写对应服务商密钥后再读取模型")
     try:
         response = httpx.get(base + "/models", headers={"Authorization": f"Bearer {key}"}, timeout=15, follow_redirects=False)
         if response.status_code != 200:

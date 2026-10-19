@@ -1,6 +1,6 @@
 """模型适配层（PRD §7.1）。
 
-- 配置了密钥：按 OpenAI 兼容协议调用云端模型（Qwen3.8-Max，端点与图片格式以官方文档为准，见 TBD-1）。
+- 配置了密钥与模型 ID：按 OpenAI 兼容协议调用选定服务商。
 - 未配置密钥：使用“演示模型”，只把检索条目摘句重组，严格带引用，不做自由发挥，
   便于在接入正式模型前跑通引证核验、积分预扣、裁断等全流程。
 演示模型的故障注入：问题中含“#模拟超时”或“#模拟报错”时抛出异常，用于验证积分退回（T3）。
@@ -28,6 +28,19 @@ VISION_PROMPT = (
 
 class ModelError(Exception):
     pass
+
+
+PROVIDERS = [
+    {"id": "tokenone", "name": "TokenOne 分组模型", "base_url": "https://token.agentone.work/v1"},
+    {"id": "openai", "name": "OpenAI 官方", "base_url": "https://api.openai.com/v1"},
+    {"id": "deepseek", "name": "DeepSeek 官方", "base_url": "https://api.deepseek.com/v1"},
+    {"id": "dashscope", "name": "通义千问官方（百炼）", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+    {"id": "custom", "name": "自定义 OpenAI 兼容接口", "base_url": ""},
+]
+
+
+def provider_for_url(base: str) -> str:
+    return next((p["id"] for p in PROVIDERS if p["base_url"] == base), "custom")
 
 
 def normalize_base_url(value: str) -> str:
@@ -60,7 +73,7 @@ def runtime_settings():
 
 def model_label() -> str:
     s = runtime_settings()
-    return s["model"] if s["api_key"] else "库内检索摘引（未接入云端模型）"
+    return (s["model"] or "尚未选择模型") if s["api_key"] else "库内检索摘引（未接入云端模型）"
 
 
 def chat(messages: list[dict], *, image_data_url: str | None = None, demo_chunks=None, question: str = ""):
@@ -68,6 +81,8 @@ def chat(messages: list[dict], *, image_data_url: str | None = None, demo_chunks
     s = runtime_settings()
     if not s["api_key"]:
         return _demo_answer(question, demo_chunks or [])
+    if not s["model"]:
+        raise ModelError("请在模型与 API 设置中选择或填写模型 ID")
     if image_data_url:
         last = messages[-1]
         last["content"] = [{"type": "image_url", "image_url": {"url": image_data_url}},
@@ -75,7 +90,7 @@ def chat(messages: list[dict], *, image_data_url: str | None = None, demo_chunks
     try:
         r = httpx.post(f"{s['base_url'].rstrip('/')}/chat/completions",
                        headers={"Authorization": f"Bearer {s['api_key']}"},
-                       json={"model": s["model"], "messages": messages, "temperature": 0.2},
+                       json={"model": s["model"], "messages": messages},
                        timeout=s["timeout"])
     except httpx.TimeoutException as e:
         raise ModelError("模型响应超时") from e
@@ -83,8 +98,13 @@ def chat(messages: list[dict], *, image_data_url: str | None = None, demo_chunks
         raise ModelError(f"模型接口不可用：{e}") from e
     if r.status_code != 200:
         raise ModelError(f"模型接口返回 {r.status_code}")
-    data = r.json()
-    text = data["choices"][0]["message"]["content"]
+    try:
+        data = r.json()
+        text = data["choices"][0]["message"]["content"]
+        if not isinstance(text, str):
+            raise ValueError("missing text")
+    except (ValueError, KeyError, TypeError, IndexError) as e:
+        raise ModelError("模型返回格式不符合 OpenAI 兼容对话协议") from e
     usage = data.get("usage") or {}
     return text, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0), s["model"]
 

@@ -18,10 +18,10 @@ REFRESH_DAYS = 7              # 刷新令牌 7 天
 LOCK_THRESHOLD = 5            # 连续 5 次错误
 LOCK_MINUTES = 15             # 锁定 15 分钟
 
-# 模型适配层（TBD-1：Qwen3.8-Max 接入方式以官方文档为准，这里按 OpenAI 兼容协议封装）
+# 服务商与模型均可由管理后台配置，按 OpenAI 兼容协议调用。
 MODEL_API_KEY = os.getenv("ZZ_MODEL_API_KEY", "")
-MODEL_BASE_URL = os.getenv("ZZ_MODEL_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-MODEL_NAME = os.getenv("ZZ_MODEL_NAME", "qwen3.8-max")
+MODEL_BASE_URL = os.getenv("ZZ_MODEL_BASE_URL") or "https://token.agentone.work/v1"
+MODEL_NAME = os.getenv("ZZ_MODEL_NAME", "").strip()
 MODEL_TIMEOUT = int(os.getenv("ZZ_MODEL_TIMEOUT", "30"))
 
 # 用于加密存储模型密钥（系统设置页写入）

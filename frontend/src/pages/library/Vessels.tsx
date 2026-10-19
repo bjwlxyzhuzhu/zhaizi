@@ -13,7 +13,7 @@ export default function Vessels() {
   const [q, setQ] = useState(params.get('q') || '')
   const [period, setPeriod] = useState('')
   const [grade, setGrade] = useState('')
-  const [place, setPlace] = useState('')
+  const [place, setPlace] = useState(params.get('place') || '')
   const query = new URLSearchParams()
   const isChar = Array.from(q.trim()).length === 1
   if (q.trim()) query.set(isChar ? 'char' : 'q', q.trim())
@@ -33,12 +33,12 @@ export default function Vessels() {
           placeholder="搜索器名、时代、出土地、著录；输入单字则按铭文含字检索"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onSearch={(v) => setParams(v ? { q: v } : {})}
+          onSearch={(v) => setParams({ ...(v ? { q: v } : {}), ...(place ? { place } : {}) })}
         />
         <Select size="large" style={{ width: 150 }} value={period} onChange={setPeriod}
           options={[{ value: '', label: '时代 · 全部' }, { value: '西周早期', label: '西周早期' }, { value: '西周中期', label: '西周中期' }, { value: '西周晚期', label: '西周晚期' }, { value: '春秋', label: '春秋' }, { value: '先秦', label: '先秦秦国' }]} />
         <Select size="large" style={{ width: 150 }} value={place} onChange={setPlace}
-          options={[{ value: '', label: '出土地 · 全部' }, ...['陈仓区', '眉县', '岐山县', '扶风县', '凤翔区'].map((d) => ({ value: d, label: d }))]} />
+          options={[{ value: '', label: '出土地 · 全部' }, ...['渭滨区', '金台区', '陈仓区', '凤翔区', '岐山县', '扶风县', '眉县', '陇县', '千阳县', '麟游县', '凤县', '太白县'].map((d) => ({ value: d, label: d }))]} />
         <Select size="large" style={{ width: 150 }} value={grade} onChange={setGrade}
           options={[{ value: '', label: '证据等级 · 全部' }, { value: 'A', label: 'A 原器拓片' }, { value: 'B', label: 'B 权威著录' }, { value: 'C', label: 'C 学界异说' }]} />
         <span className="chip on" style={{ alignSelf: 'center' }}>已审核 ✓</span>

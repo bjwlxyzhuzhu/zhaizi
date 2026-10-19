@@ -198,5 +198,43 @@ class AdminFeatures(unittest.TestCase):
             self.assertEqual(db.get(QAMessage, mid).content, original)
 
 
+    def test_07_flexible_providers_and_exact_model_dispatch(self):
+        first_key = "test-only-" + secrets.token_hex(24)
+        second_key = "test-only-" + secrets.token_hex(24)
+        self.assertEqual(self.call("PUT", "/admin/settings", {"model_provider": "tokenone", "model_base_url": "https://token.agentone.work", "model_name": "group/custom-model", "model_api_key": first_key}).status_code, 200)
+        with patch("app.routers.admin.httpx.get") as upstream:
+            response = self.call("POST", "/admin/settings/models", {"model_base_url": "https://api.openai.com/v1"})
+            self.assertEqual(response.status_code, 400)
+            upstream.assert_not_called()
+        rejected = self.call("PUT", "/admin/settings", {"model_base_url": "https://api.openai.com/v1", "model_name": "official-model"})
+        self.assertEqual(rejected.status_code, 400)
+        self.assertEqual(llm.runtime_settings()["base_url"], "https://token.agentone.work/v1")
+        saved = self.call("PUT", "/admin/settings", {"model_provider": "openai", "model_base_url": "https://api.openai.com", "model_name": "  official-reasoning-model  ", "model_api_key": second_key})
+        self.assertEqual(saved.status_code, 200, saved.text)
+        settings = self.call("GET", "/admin/settings").json()
+        self.assertEqual(settings["model_provider"], "openai")
+        self.assertEqual(settings["model_name"], "official-reasoning-model")
+        self.assertNotIn("price_in", settings)
+        self.assertNotIn("price_out", settings)
+        self.assertEqual({p["id"] for p in settings["providers"]}, {"tokenone", "openai", "deepseek", "dashscope", "custom"})
+        upstream_response = httpx.Response(200, json={"choices": [{"message": {"content": "答案[V1]"}}], "usage": {"prompt_tokens": 4, "completion_tokens": 3}})
+        with patch("app.llm.httpx.post", return_value=upstream_response) as upstream:
+            result = llm.chat([{"role": "user", "content": "测试"}])
+            self.assertEqual(result, ("答案[V1]", 4, 3, "official-reasoning-model"))
+            self.assertEqual(upstream.call_args.args[0], "https://api.openai.com/v1/chat/completions")
+            self.assertEqual(upstream.call_args.kwargs["json"]["model"], "official-reasoning-model")
+            self.assertNotIn("temperature", upstream.call_args.kwargs["json"])
+            self.assertEqual(upstream.call_args.kwargs["headers"]["Authorization"], "Bearer " + second_key)
+        self.assertEqual(self.call("PUT", "/admin/settings", {"model_name": "another/provider-model"}).status_code, 200)
+        self.assertEqual(llm.runtime_settings()["model"], "another/provider-model")
+        self.assertEqual(llm.runtime_settings()["api_key"], second_key)
+        with patch("app.llm.runtime_settings", return_value={"api_key": second_key, "model": ""}), patch("app.llm.httpx.post") as upstream:
+            with self.assertRaises(llm.ModelError):
+                llm.chat([])
+            upstream.assert_not_called()
+        self.assertIsNone(self.call("GET", "/dash/ops").json()["model"]["cost"])
+        self.assertEqual(self.call("PUT", "/admin/settings", {"model_provider": "unknown"}).status_code, 422)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

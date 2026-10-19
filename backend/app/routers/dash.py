@@ -132,8 +132,6 @@ def ops(days: int = Query(default=14, ge=7, le=30), u: User = Depends(require("a
     calls = db.execute(select(UsageLog.role, UsageLog.action, func.count(), func.sum(UsageLog.tokens_in), func.sum(UsageLog.tokens_out),
                               func.avg(UsageLog.latency_ms), func.sum(case((UsageLog.success.is_(False), 1), else_=0)))
                        .where(UsageLog.action.in_(("qa", "vision"))).group_by(UsageLog.role, UsageLog.action)).all()
-    s = {r.key: r.value for r in db.scalars(select(SystemSetting))}
-    pin, pout = float(s.get("price_in", "0.0024")), float(s.get("price_out", "0.0096"))  # 元/千token，可在系统设置配置
     total_calls = sum(c[2] for c in calls)
     fails = sum(int(c[6] or 0) for c in calls)
     tin = sum(int(c[3] or 0) for c in calls)
@@ -171,9 +169,9 @@ def ops(days: int = Query(default=14, ge=7, le=30), u: User = Depends(require("a
         "points": {"granted": granted, "consumed": consumed, "task_reward": task_reward,
                    "task_ratio": round(task_reward / (granted + task_reward) * 100, 1) if granted + task_reward else 0,
                    "balance_dist": balances},
-        "model": {"calls": total_calls, "fail_rate": round(fails / total_calls * 100, 1) if total_calls else 0,
+        "model": {"calls": total_calls, "failures": fails, "fail_rate": round(fails / total_calls * 100, 1) if total_calls else 0,
                   "avg_latency": int(sum((c[5] or 0) * c[2] for c in calls) / total_calls) if total_calls else 0,
-                  "tokens_in": tin, "tokens_out": tout, "cost": round(tin / 1000 * pin + tout / 1000 * pout, 2),
+                  "tokens_in": tin, "tokens_out": tout, "cost": None,
                   "by_role": [{"role": c[0], "action": c[1], "calls": c[2]} for c in calls]},
         "tasks": {"submitted": subs_total, "pass_rate": round(subs_ok / subs_total * 100, 1) if subs_total else 0,
                   "avg_review_hours": avg_review_h, "pending": pending_tasks, "by_status": task_status},
