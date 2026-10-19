@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -134,15 +135,15 @@ function ScreenView() {
           )}
           {picked && focus === 0 && (
             <div className="float-panel" style={{ right: 24, top: 70, width: 300, padding: 18 }}>
-              <div className="panel-head" style={{ marginBottom: 8 }}><span className="panel-title">{picked.name}</span><a onClick={() => setPicked(null)}>×</a></div>
+              <div className="panel-head" style={{ marginBottom: 8 }}><span className="panel-title"><RareText>{picked.name}</RareText></span><a onClick={() => setPicked(null)}>×</a></div>
               <div className="note">已审核器铭 {picked.count} 件{picked.count ? '，代表器物：' : ''}</div>
               {picked.vessels.map((v) => (
                 <div key={v.id} className="row-line" style={{ cursor: 'pointer' }} onClick={() => nav(`/library/vessels/${v.id}`)}>
                   <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     {v.image && <img src={imgUrl(v.image)} style={{ width: 42, height: 42, objectFit: 'cover', borderRadius: 6 }} />}
-                    {v.name}
+                    <RareText>{v.name}</RareText>
                   </span>
-                  <span className="note">{v.period.split('（')[0]}</span>
+                  <span className="note"><RareText>{v.period.split('（')[0]}</RareText></span>
                 </div>
               ))}
             </div>
@@ -155,7 +156,7 @@ function ScreenView() {
           {[[pct(t.citation_accuracy), '引证准确率', `抽检 ${t.sampled} 条 · 目标 ≥90%`], [pct(t.unsourced_rate), '无出处断言率', '越低越好'], [pct(t.adoption_rate), '专家采纳率', `已裁断 ${t.adjudicated} 条`]].map(([v, l, s]) => (
             <div key={l as string} className="stat-card" style={{ marginBottom: 12 }}>
               <div className="serif" style={{ fontSize: 38, color: 'var(--gold-2)' }}>{v == null ? '暂无数据' : <CountUp value={v as number} suffix="%" />}</div>
-              <div className="stat-label">{l} · {s}</div>
+              <div className="stat-label">{l} · <RareText>{s}</RareText></div>
             </div>
           ))}
           <div className="serif" style={{ fontSize: 18, margin: '18px 0 4px' }}>近 30 天问答量</div>
@@ -182,9 +183,9 @@ function Ticker({ title, items }: { title: string; items: string[] }) {
   const show = items.length ? [0, 1, 2].map((k) => items[(i + k) % items.length]) : []
   return (
     <div>
-      <div className="tag-gold" style={{ marginBottom: 8 }}>{title}</div>
+      <div className="tag-gold" style={{ marginBottom: 8 }}><RareText>{title}</RareText></div>
       {show.length === 0 && <div className="note">暂无</div>}
-      {show.map((s, k) => <div key={`${i}-${k}`} className="rise" style={{ fontSize: 15, padding: '3px 0', opacity: 1 - k * 0.25 }}>{s}</div>)}
+      {show.map((s, k) => <div key={`${i}-${k}`} className="rise" style={{ fontSize: 15, padding: '3px 0', opacity: 1 - k * 0.25 }}><RareText>{s}</RareText></div>)}
     </div>
   )
 }
@@ -209,7 +210,7 @@ function ProgressView() {
           <Table rowKey="id" pagination={false} dataSource={(data?.kpis || []).filter((k: any) => k.year === y)}
             columns={[
               { title: '指标', dataIndex: 'indicator' },
-              { title: '目标值', dataIndex: 'target', render: (v, r: any) => user.role === 'admin' ? <a onClick={() => setEdit(r)}>{v}{r.unit}</a> : `${v}${r.unit}` },
+              { title: '目标值', dataIndex: 'target', render: (v, r: any) => user.role === 'admin' ? <a onClick={() => setEdit(r)}><RareText>{v}</RareText>{r.unit}</a> : `${v}${r.unit}` },
               { title: '当前值', dataIndex: 'current', render: (v, r: any) => v == null ? '暂无数据' : `${v}${r.unit}` },
               { title: '完成率', dataIndex: 'rate', width: 320, render: (v) => v == null ? <span className="note">暂无抽检记录</span> : <Progress percent={v} strokeColor={{ from: '#3F8F7A', to: '#C9A45C' }} /> },
             ]} />
@@ -245,7 +246,7 @@ export default function Dashboard() {
   return (
     <div>
       <div className="dashboard-tabs">
-        {views.map(([k, t]) => <span key={k} className={`chip ${view === k ? 'on' : ''}`} onClick={() => setParams({ view: k })}>{t}</span>)}
+        {views.map(([k, t]) => <span key={k} className={`chip ${view === k ? 'on' : ''}`} onClick={() => setParams({ view: k })}><RareText>{t}</RareText></span>)}
         <span style={{ flex: 1 }} />
         {(view === 'screen' || view === 'ops') && (
           <Button icon={<FullscreenOutlined />} onClick={() => document.getElementById(view === 'ops' ? 'ops-root' : 'screen-root')?.requestFullscreen?.()}>全屏<span className="fullscreen-hint">（F11 亦可）</span></Button>

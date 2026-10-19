@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -52,16 +53,16 @@ export default function Home() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 20 }}>
         <section className="hero rise">
           <div className="hero-carousel" aria-label="周秦文化主题轮播"><Carousel autoplay={!window.matchMedia('(prefers-reduced-motion: reduce)').matches} autoplaySpeed={6500} effect="fade" pauseOnHover dots>
-            {[['/img/hero.jpg', '宅兹中国 · 周秦文脉'], ['/img/landscape.jpg', '山川关陇 · 宝鸡文化资源'], ['/img/kg-thumb.jpg', '知识关联 · 智能体研究服务']].map(([src, title]) => <div key={src}><div className="hero-slide" style={{ backgroundImage: `url(${src})` }}><span>{title}</span></div></div>)}
+            {[['/img/hero.jpg', '宅兹中国 · 周秦文脉'], ['/img/landscape.jpg', '山川关陇 · 宝鸡文化资源'], ['/img/kg-thumb.jpg', '知识关联 · 智能体研究服务']].map(([src, title]) => <div key={src}><div className="hero-slide" style={{ backgroundImage: `url(${src})` }}><span><RareText>{title}</RareText></span></div></div>)}
           </Carousel></div>
           <div className="hero-inner">
             <div className="eyebrow">WHERE HERITAGE MEETS INTELLIGENCE</div>
-            <div className="hero-title">宅兹中国</div>
+            <div className="hero-title"><RareText>宅兹中国</RareText></div>
             <div className="hero-sub">从一件青铜器，走进三千年的文明叙事</div>
             <div className="hero-tags">研究智能体 · 动态知识库 · 证据可溯 · 人机协同</div>
             <div className="search-tabs">
               {TABS.map((t, i) => (
-                <span key={t} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}>{t}</span>
+                <span key={t} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}><RareText>{t}</RareText></span>
               ))}
             </div>
             <div className="searchbox">
@@ -82,7 +83,7 @@ export default function Home() {
             <div className="examples">
               <span className="dim">推荐问题：</span>
               {EXAMPLES.map((e) => (
-                <span key={e} className="chip" onClick={() => { setTab(0); nav(`/qa?q=${encodeURIComponent(e)}`) }}>{e}</span>
+                <span key={e} className="chip" onClick={() => { setTab(0); nav(`/qa?q=${encodeURIComponent(e)}`) }}><RareText>{e}</RareText></span>
               ))}
             </div>
           </div>
@@ -103,10 +104,10 @@ export default function Home() {
             <>
               <div style={{ height: 210, borderRadius: 12, background: `url(${imgUrl(featured.image)}) center/cover`, border: '1px solid var(--line)' }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '16px 0 6px', flexWrap: 'wrap' }}>
-                <span className="serif" style={{ fontSize: 30 }}>{featured.name}</span>
+                <span className="serif" style={{ fontSize: 30 }}><RareText>{featured.name}</RareText></span>
                 <span className="tag-gold">{featured.period.split('（')[0]}</span>
               </div>
-              <div className="note" style={{ fontSize: 13 }}>{featured.find_place} · {featured.collection}</div>
+              <div className="note" style={{ fontSize: 13 }}>{featured.find_place} · <RareText>{featured.collection}</RareText></div>
               <div style={{ marginTop: 'auto', paddingTop: 16 }}>
                 <span className="chip" onClick={() => nav(`/library/vessels/${featured.id}`)}>查看详情 <ArrowRightOutlined /></span>
               </div>
@@ -136,7 +137,7 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {([['vessels', '器物铭文'], ['glyphs', '字形图录'], ['dialects', '方言条目'], ['texts', '传世文献']] as const).map(([k, t]) => (
-              <span key={k} className={`chip ${libTab === k ? 'on' : ''}`} onClick={() => setLibTab(k)}>{t}</span>
+              <span key={k} className={`chip ${libTab === k ? 'on' : ''}`} onClick={() => setLibTab(k)}><RareText>{t}</RareText></span>
             ))}
           </div>
           {!latest ? (
@@ -147,8 +148,8 @@ export default function Home() {
                 <div key={v.id} className="vessel-card" onClick={() => nav(`/library/vessels/${v.id}`)}>
                   <VesselImg image={v.image} name={v.name} height={110} />
                   <div className="meta" style={{ padding: '10px 12px' }}>
-                    <div className="nm" style={{ fontSize: 16 }}>{v.name}</div>
-                    <div className="note">{v.period.split('（')[0]} · {v.district || v.find_place.slice(0, 6)}</div>
+                    <div className="nm" style={{ fontSize: 16 }}><RareText>{v.name}</RareText></div>
+                    <div className="note"><RareText>{v.period.split('（')[0]}</RareText> · {v.district || v.find_place.slice(0, 6)}</div>
                   </div>
                 </div>
               ))}
@@ -158,7 +159,7 @@ export default function Home() {
               {(latest[libTab] || []).slice(0, 5).map((x: any) => (
                 <div key={x.id} className="row-line" style={{ cursor: 'pointer' }}
                   onClick={() => nav(libTab === 'glyphs' ? `/library/characters/${x.character}` : libTab === 'dialects' ? '/library/dialects' : '/library/texts')}>
-                  <span>{libTab === 'glyphs' ? `“${x.character}” · ${x.script}` : libTab === 'dialects' ? `${x.word} [${x.ipa}]` : `《${x.title}·${x.chapter}》`}</span>
+                  <span><RareText>{libTab === 'glyphs' ? `“${x.character}” · ${x.script}` : libTab === 'dialects' ? `${x.word} [${x.ipa}]` : `《${x.title}·${x.chapter}》`}</RareText></span>
                   <span className="note">{libTab === 'dialects' ? x.district : ''}</span>
                 </div>
               ))}
@@ -213,7 +214,7 @@ export default function Home() {
             <div key={i} className="row-line">
               <span>
                 <span className="tag-gold" style={{ marginRight: 10 }}>{f.kind}</span>
-                {f.actor} · {f.action} · {f.target}
+                {f.actor} · {f.action} · <RareText>{f.target}</RareText>
               </span>
               <span className="note">{f.at.replace('T', ' ').slice(5)}</span>
             </div>
@@ -232,7 +233,7 @@ export default function Home() {
               {[['我的任务', <CheckSquareOutlined />, '/tasks'], ['我的问答', <MessageOutlined />, '/qa'], ['字形谱系', <StarOutlined />, '/library/characters'], ['积分流水', <FileTextOutlined />, '/me']].map(([t, ic, to]) => (
                 <div key={t as string} className="stat-card" style={{ textAlign: 'center', cursor: 'pointer', padding: 12 }} onClick={() => nav(to as string)}>
                   <div style={{ fontSize: 22, color: 'var(--gold)' }}>{ic}</div>
-                  <div className="note">{t}</div>
+                  <div className="note"><RareText>{t}</RareText></div>
                 </div>
               ))}
             </div>
@@ -249,7 +250,7 @@ export default function Home() {
                 : [['用户管理', '/admin/users'], ['Excel 导入', '/admin/import'], ['积分流水', '/admin/points'], ['数据驾驶舱', '/dashboard']]
               ).map(([t, to]) => (
                 <div key={t} className="stat-card" style={{ cursor: 'pointer' }} onClick={() => nav(to)}>
-                  <div className="serif" style={{ fontSize: 17 }}>{t}</div>
+                  <div className="serif" style={{ fontSize: 17 }}><RareText>{t}</RareText></div>
                   <div className="note">进入 <ArrowRightOutlined /></div>
                 </div>
               ))}

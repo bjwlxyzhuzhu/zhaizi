@@ -269,26 +269,27 @@ def send_adjudication(mid: int, request: Request, u: User = Depends(require("adm
 @router.post("/qa/sessions/{sid}/export")
 def export(sid: int, u: User = Depends(current_user), db: Session = Depends(get_db)):
     """QA-12：导出问答报告（Word 可直接打开的 .doc），用户扣 3 分。"""
+    from ..readings import annotated_html
     s = _own_session(db, sid, u)
     hold = points.Hold(u, "export")
     hold.freeze()
     try:
         msgs = db.scalars(select(QAMessage).where(QAMessage.session_id == sid).order_by(QAMessage.id)).all()
-        parts = [f"<h1>宅兹·问答报告：{html.escape(s.title)}</h1><p>导出人：{html.escape(u.name)}　时间：{datetime.now():%Y-%m-%d %H:%M}</p>"]
+        parts = [f"<h1>宅兹·问答报告：{annotated_html(s.title)}</h1><p>导出人：{html.escape(u.name)}　时间：{datetime.now():%Y-%m-%d %H:%M}</p>"]
         cites = {}
         for m in msgs:
             if m.role == "user":
-                parts.append(f"<h3>问：{html.escape(m.content)}</h3>")
+                parts.append(f"<h3>问：{annotated_html(m.content)}</h3>")
             else:
-                body = "".join(f"{html.escape(seg['text'])}" + "".join(f"<sup>[{c}]</sup>" for c in seg["cites"]) +
+                body = "".join(f"{annotated_html(seg['text'])}" + "".join(f"<sup>[{c}]</sup>" for c in seg["cites"]) +
                                (" <b style='color:#B5452F'>（D级·模型推测，未经核验）</b>" if seg["grade"] == "D" else "") +
-                               ("<br/>" if seg.get("newline") else "") for seg in (m.segments or [])) or html.escape(m.content)
+                               ("<br/>" if seg.get("newline") else "") for seg in (m.segments or [])) or annotated_html(m.content)
                 parts.append(f"<p>{body}</p>")
                 for c in m.citations or []:
                     cites[c["cid"]] = c
         parts.append("<h2>引用清单</h2><ol>" + "".join(
-            f"<li>[{c['cid']}] {html.escape(c['title'])}（证据等级 {c['grade']}）</li>" for c in cites.values()) + "</ol>")
-        parts.append("<hr/><p><i>本报告由AI辅助生成，引用以库内条目为准。</i></p>")
+            f"<li>[{c['cid']}] {annotated_html(c['title'])}（证据等级 {c['grade']}）</li>" for c in cites.values()) + "</ol>")
+        parts.append("<hr/><p><i>本报告由AI辅助生成，引用以库内条目为准。注音为现代汉语字音，多音字并列词典读音，不代表古音或通假释读。</i></p>")
         doc = "<html><head><meta charset='utf-8'></head><body style='font-family:SimSun'>" + "".join(parts) + "</body></html>"
         points.log_usage(db, u, "export", cost=points.rule(db, "cost_export"), success=True)
         db.commit()

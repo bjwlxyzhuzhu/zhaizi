@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { App, AutoComplete, Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag } from 'antd'
@@ -15,7 +16,7 @@ function NodePicker({ value, onChange }: { value?: number; onChange?: (v: number
   return (
     <AutoComplete value={label || (value ? `#${value}` : '')} onSearch={(v) => { setQ(v); setLabel(v) }}
       onSelect={(v, o: any) => { onChange?.(Number(v)); setLabel(o.text) }}
-      options={data.map((n: any) => ({ value: String(n.id), text: `${n.type}·${n.name}`, label: `${n.type} · ${n.name}` }))} placeholder="输入名称搜索节点" />
+      options={data.map((n: any) => ({ value: String(n.id), text: `${n.type}·${n.name}`, label: <RareText>{`${n.type} · ${n.name}`}</RareText> }))} placeholder="输入名称搜索节点" />
   )
 }
 
@@ -86,15 +87,15 @@ export default function GraphEditor() {
             onRow={(r: any) => ({ onClick: () => setSel(r), style: { cursor: 'pointer', background: sel?.id === r.id ? 'rgba(47,111,94,.08)' : undefined } })}
             columns={[
               { title: 'ID', dataIndex: 'id', width: 60 },
-              { title: '类型', dataIndex: 'type', width: 80, render: (t) => <Tag color={NODE_COLORS[t]} style={{ color: '#111' }}>{t}</Tag> },
-              { title: '名称', dataIndex: 'name' },
+              { title: '类型', dataIndex: 'type', width: 80, render: (t) => <Tag color={NODE_COLORS[t]} style={{ color: '#111' }}><RareText>{t}</RareText></Tag> },
+              { title: '名称', dataIndex: 'name', render: (value: string) => <RareText>{value}</RareText> },
             ]} />
         </div>
         <div className="panel">
           {!detail ? <div className="empty">选择左侧节点查看与编辑</div> : (
             <>
               <div className="panel-head">
-                <span className="panel-title">{detail.type} · {detail.name}</span>
+                <span className="panel-title">{detail.type} · <RareText>{detail.name}</RareText></span>
                 <Space>
                   <Button size="small" onClick={() => { setNodeForm(detail); nf.setFieldsValue({ type: detail.type, name: detail.name, level: 'L1', desc: detail.props?.desc, grade: detail.props?.grade || 'B' }) }}>编辑</Button>
                   <Button size="small" danger onClick={() => delNode(detail)}>删除</Button>

@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 /**
  * S2 星空式 3D 力导向知识图谱（PRD KG-1 ~ KG-6）
  * 节点：发光球体，按类型着色、按连接数定大小；边：半透明细线；背景星尘缓慢漂移。
@@ -269,7 +270,7 @@ function Label({ node, posMap, strong }: { node: GNode; posMap: React.MutableRef
             textShadow: '0 0 6px #000, 0 0 2px #000', opacity: strong ? 1 : 0.85,
           }}
         >
-          {node.name}
+          <RareText>{node.name}</RareText>
           {strong && <span style={{ fontSize: 11, color: NODE_COLORS[node.type], marginLeft: 6 }}>{node.type}</span>}
         </div>
       </Html>

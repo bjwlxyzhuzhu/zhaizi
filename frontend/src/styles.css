@@ -444,3 +444,14 @@ a:hover { color: var(--gold-2); }
   .brand-sub { display: none; }
   .qa-grid { grid-template-columns: 220px minmax(0, 1fr) 340px; }
 }
+/* Modern character readings are generated visually, so selection/copy keeps the original text. */
+.rare-reading { ruby-position: over; ruby-align: center; white-space: nowrap; }
+.rare-reading > rt { font-family: system-ui, sans-serif; font-weight: 500; font-style: normal; font-size: clamp(10px, .55em, 22px); line-height: 1.25; letter-spacing: 0; color: inherit; opacity: .9; text-align: center; user-select: none; }
+.rare-reading > rt::before { content: attr(data-reading); }
+@media (max-width: 900px) {
+  .vessel-detail-page .page-head { flex-wrap: wrap; gap: 18px; }
+  .vessel-detail-page .page-head > div { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  .vessel-detail-page > .grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .vessel-detail-page .panel-head { flex-wrap: wrap; gap: 12px; }
+  .vessel-detail-page .panel-title { flex-shrink: 0; }
+}

@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -86,7 +87,7 @@ export default function Tasks() {
       </div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         {([['open', '可领取任务'], ['pending', `进行中（${mine.filter((m) => m.status === 'pending').length}）`], ['done', '已完成'], ['ledger', '积分流水']] as const).map(([k, t]) => (
-          <span key={k} className={`chip ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>{t}</span>
+          <span key={k} className={`chip ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}><RareText>{t}</RareText></span>
         ))}
       </div>
 
@@ -96,8 +97,8 @@ export default function Tasks() {
             {(data?.templates || []).map((t: any) => (
               <div key={t.id} className="panel">
                 <div style={{ fontSize: 24, color: '#b7893a' }}>{ICON[t.code] || <EditOutlined />}</div>
-                <div className="serif" style={{ fontSize: 24, margin: '10px 0 8px' }}>{t.name}</div>
-                <div className="note" style={{ fontSize: 14, minHeight: 44 }}>{t.description}</div>
+                <div className="serif" style={{ fontSize: 24, margin: '10px 0 8px' }}><RareText>{t.name}</RareText></div>
+                <div className="note" style={{ fontSize: 14, minHeight: 44 }}><RareText>{t.description}</RareText></div>
                 <div className="row-line" style={{ borderBottom: 0, paddingBottom: 0 }}>
                   <span className="tag-gold" style={{ color: '#8a6a2b' }}>+{t.reward} 积分{t.code === 'dialect' ? ' / 条' : t.code === 'correction' ? ' / 采纳' : ''}</span>
                   <span className="note">今日 {t.today}/{t.daily_limit}</span>
@@ -115,9 +116,9 @@ export default function Tasks() {
               <div className="panel-head"><span className="panel-title">研究员发布的任务批次</span><span className="panel-cap">IN PROGRESS</span></div>
               {(data?.batches || []).map((b: any) => (
                 <div key={b.id} style={{ padding: '10px 0', cursor: 'pointer' }} onClick={() => openBatch(b.id)}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{b.title}</span><span>{b.total ? Math.round((b.done / b.total) * 100) : 0}%</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span><RareText>{b.title}</RareText></span><span>{b.total ? Math.round((b.done / b.total) * 100) : 0}%</span></div>
                   <Progress percent={b.total ? Math.round((b.done / b.total) * 100) : 0} showInfo={false} strokeColor={{ from: '#3F8F7A', to: '#C9A45C' }} />
-                  <div className="note">{b.description}</div>
+                  <div className="note"><RareText>{b.description}</RareText></div>
                 </div>
               ))}
             </div>
@@ -141,8 +142,8 @@ export default function Tasks() {
           <Table rowKey="id" dataSource={mine.filter((m) => (tab === 'pending' ? m.status === 'pending' : m.status !== 'pending'))}
             columns={[
               { title: '任务', dataIndex: 'template', width: 130 },
-              { title: '条目', dataIndex: 'target_title' },
-              { title: '内容', dataIndex: 'content', render: (c) => <span className="note">{c.opinion || c.ipa || ''} {c.meaning || ''}</span> },
+              { title: '条目', dataIndex: 'target_title', render: (value: string) => <RareText>{value}</RareText> },
+              { title: '内容', dataIndex: 'content', render: (c) => <span className="note"><RareText>{c.opinion || c.ipa || ''}</RareText> <RareText>{c.meaning || ''}</RareText></span> },
               { title: '状态', dataIndex: 'status', width: 100, render: (s) => <Tag color={ST[s][1]}>{ST[s][0]}</Tag> },
               { title: '结果', render: (_, r: any) => (r.status === 'approved' ? <span className="gold">+{r.reward} 积分</span> : r.reject_reason) },
               { title: '提交时间', dataIndex: 'created_at', width: 160, render: (v) => v.replace('T', ' ') },
@@ -155,10 +156,10 @@ export default function Tasks() {
           <Table rowKey="id" dataSource={pts?.ledger || []} pagination={{ pageSize: 15 }}
             columns={[
               { title: '时间', dataIndex: 'created_at', render: (v) => v.replace('T', ' ') },
-              { title: '类型', dataIndex: 'type', render: (v) => <Tag>{v}</Tag> },
-              { title: '变动', dataIndex: 'amount', render: (v) => <span style={{ color: v > 0 ? '#2f6f5e' : '#b5452f' }}>{v > 0 ? '+' : ''}{v}</span> },
+              { title: '类型', dataIndex: 'type', render: (v) => <Tag><RareText>{v}</RareText></Tag> },
+              { title: '变动', dataIndex: 'amount', render: (v) => <span style={{ color: v > 0 ? '#2f6f5e' : '#b5452f' }}>{v > 0 ? '+' : ''}<RareText>{v}</RareText></span> },
               { title: '余额', dataIndex: 'balance_after' },
-              { title: '说明', dataIndex: 'reason' },
+              { title: '说明', dataIndex: 'reason', render: (value: string) => <RareText>{value}</RareText> },
             ]} />
         </div>
       )}
@@ -186,12 +187,12 @@ export default function Tasks() {
       </Modal>
 
       <Modal title={batch?.title} open={!!batch} onCancel={() => setBatch(null)} footer={null} width={900} destroyOnClose>
-        <div className="note" style={{ marginBottom: 12 }}>{batch?.description} 听音频（待上传时按词条校对），填写或校对音标与词义。</div>
+        <div className="note" style={{ marginBottom: 12 }}><RareText>{batch?.description}</RareText> 听音频（待上传时按词条校对），填写或校对音标与词义。</div>
         <Table rowKey="id" size="small" pagination={false} dataSource={batch?.items || []}
           columns={[
             { title: '区县', dataIndex: 'district', width: 80 },
-            { title: '词条', dataIndex: 'word', width: 90, render: (v) => <span className="serif" style={{ fontSize: 16 }}>{v}</span> },
-            { title: '现音标', dataIndex: 'ipa', width: 120, render: (v) => <span className="mono">{v}</span> },
+            { title: '词条', dataIndex: 'word', width: 90, render: (v) => <span className="serif" style={{ fontSize: 16 }}><RareText>{v}</RareText></span> },
+            { title: '现音标', dataIndex: 'ipa', width: 120, render: (v) => <span className="mono"><RareText>{v}</RareText></span> },
             { title: '校对', render: (_, r: any) => (r.done ? <Tag color="green">已提交</Tag> : <DialectRow item={r} onSubmit={submitDialect} />) },
           ]} />
       </Modal>

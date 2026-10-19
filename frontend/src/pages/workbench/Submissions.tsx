@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { App, Button, Form, Input, Modal, Space, Table, Tag } from 'antd'
@@ -33,7 +34,7 @@ export default function Submissions() {
         extra={user.role === 'researcher' && <Button type="primary" onClick={() => setPublish(true)}>发布方言标注批次</Button>} />
       <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
         {[['pending', '待审核'], ['approved', '已通过'], ['rejected', '已驳回']].map(([k, t]) => (
-          <span key={k} className={`chip ${status === k ? 'on' : ''}`} onClick={() => setStatus(k)}>{t}</span>
+          <span key={k} className={`chip ${status === k ? 'on' : ''}`} onClick={() => setStatus(k)}><RareText>{t}</RareText></span>
         ))}
       </div>
       <div className="panel">
@@ -41,9 +42,9 @@ export default function Submissions() {
           expandable={{
             expandedRowRender: (r: any) => (
               <div style={{ lineHeight: 1.9 }}>
-                {r.content.opinion && <div><b>意见：</b>{r.content.opinion}</div>}
-                {r.content.basis && <div><b>依据：</b>{r.content.basis}</div>}
-                {r.content.context && <div className="note" style={{ whiteSpace: 'pre-wrap' }}><b>问答上下文：</b>{r.content.context}</div>}
+                {r.content.opinion && <div><b>意见：</b><RareText>{r.content.opinion}</RareText></div>}
+                {r.content.basis && <div><b>依据：</b><RareText>{r.content.basis}</RareText></div>}
+                {r.content.context && <div className="note" style={{ whiteSpace: 'pre-wrap' }}><b>问答上下文：</b><RareText>{r.content.context}</RareText></div>}
                 {r.content.ipa && <div><b>音标：</b><span className="mono">{r.content.original?.ipa ? `${r.content.original.ipa} → ` : ''}{r.content.ipa}</span></div>}
                 {r.content.meaning && <div><b>词义：</b>{r.content.original?.meaning && r.content.original.meaning !== r.content.meaning ? `${r.content.original.meaning} → ` : ''}{r.content.meaning}</div>}
                 {r.image_url && <img src={r.image_url} style={{ maxHeight: 200, marginTop: 8, borderRadius: 8 }} />}
@@ -51,10 +52,10 @@ export default function Submissions() {
             ),
           }}
           columns={[
-            { title: '任务', dataIndex: 'template', width: 130, render: (v) => <Tag color="gold">{v}</Tag> },
+            { title: '任务', dataIndex: 'template', width: 130, render: (v) => <Tag color="gold"><RareText>{v}</RareText></Tag> },
             { title: '提交人', dataIndex: 'user', width: 110 },
-            { title: '条目', dataIndex: 'target_title' },
-            { title: '摘要', render: (_, r: any) => <span className="note">{(r.content.opinion || r.content.ipa || '').slice(0, 40)}</span> },
+            { title: '条目', dataIndex: 'target_title', render: (value: string) => <RareText>{value}</RareText> },
+            { title: '摘要', render: (_, r: any) => <span className="note"><RareText>{(r.content.opinion || r.content.ipa || '').slice(0, 40)}</RareText></span> },
             { title: '提交时间', dataIndex: 'created_at', width: 150, render: (v) => v.replace('T', ' ') },
             status === 'pending'
               ? { title: '操作', width: 170, render: (_, r: any) => (

@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Input, Select, Table, Tooltip } from 'antd'
@@ -27,7 +28,7 @@ export default function Dialects() {
           pagination={{ pageSize: 15 }}
           columns={[
             { title: '区县', dataIndex: 'district', width: 110 },
-            { title: '词条', dataIndex: 'word', render: (v) => <span className="serif" style={{ fontSize: 18 }}>{v}</span> },
+            { title: '词条', dataIndex: 'word', render: (v) => <span className="serif" style={{ fontSize: 18 }}><RareText>{v}</RareText></span> },
             { title: '国际音标', dataIndex: 'ipa', render: (v) => <span className="mono">[{v}]</span> },
             { title: '词义', dataIndex: 'meaning' },
             { title: '发音人', dataIndex: 'speaker', width: 100 },

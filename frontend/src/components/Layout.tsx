@@ -1,3 +1,4 @@
+import { RareText } from './RareText'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, ConfigProvider, Drawer, Dropdown, Empty, Input, Modal } from 'antd'
@@ -170,8 +171,8 @@ export default function Layout() {
           (notes || []).map((n: any) => (
             <div key={n.id} className="row-line" style={{ alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</div>
-                {n.body && <div className="note" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{n.body}</div>}
+                <div style={{ fontWeight: n.read ? 400 : 600 }}><RareText>{n.title}</RareText></div>
+                {n.body && <div className="note" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}><RareText>{n.body}</RareText></div>}
               </div>
               <span className="note" style={{ whiteSpace: 'nowrap' }}>{n.created_at.replace('T', ' ')}</span>
             </div>
@@ -187,7 +188,7 @@ export default function Layout() {
           onSearch={(q) => {
             setSearchOpen(false)
             if (!q.trim()) return
-            if (q.trim().length === 1) nav(`/library/characters/${encodeURIComponent(q.trim())}`)
+            if (Array.from(q.trim()).length === 1) nav(`/library/characters/${encodeURIComponent(q.trim())}`)
             else nav(`/library/vessels?q=${encodeURIComponent(q.trim())}`)
           }}
         />

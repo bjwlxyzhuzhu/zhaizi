@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Descriptions, Progress, Table, Tag } from 'antd'
@@ -42,7 +43,7 @@ export default function Me() {
           columns={[
             { title: '时间', dataIndex: 'created_at', render: (v) => v.replace('T', ' ') },
             { title: '类型', dataIndex: 'type', render: (v) => <Tag>{TYPE_LABEL[v] || v}</Tag> },
-            { title: '变动', dataIndex: 'amount', render: (v) => <span style={{ color: v > 0 ? '#2f6f5e' : '#b5452f', fontWeight: 600 }}>{v > 0 ? '+' : ''}{v}</span> },
+            { title: '变动', dataIndex: 'amount', render: (v) => <span style={{ color: v > 0 ? '#2f6f5e' : '#b5452f', fontWeight: 600 }}>{v > 0 ? '+' : ''}<RareText>{v}</RareText></span> },
             { title: '变动后余额', dataIndex: 'balance_after' },
             { title: '说明', dataIndex: 'reason' },
           ]} />

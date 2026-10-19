@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -25,10 +26,10 @@ export default function Characters() {
       <PageHead
         title="字形谱系"
         desc="让字形在金文、石鼓文与小篆之间演变；保留各阶段对应的出处与器物信息。"
-        extra={<span className="tag-gold">字头：{char}</span>}
+        extra={<span className="tag-gold">字头：<RareText>{char}</RareText></span>}
       />
       <div className="panel" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 30, alignItems: 'center', padding: '30px 40px' }}>
-        <div className="serif" style={{ fontSize: 200, lineHeight: 1, color: '#2f6f5e', textAlign: 'center', fontWeight: 900 }}>{char}</div>
+        <div className="serif" style={{ fontSize: 200, lineHeight: 1, color: '#2f6f5e', textAlign: 'center', fontWeight: 900 }}><RareText>{char}</RareText></div>
         <div>
           <div className="eyebrow">GLYPH GENEALOGY</div>
           <div className="serif" style={{ fontSize: 34, margin: '10px 0 12px' }}>从字形进入观念的历史</div>
@@ -38,7 +39,7 @@ export default function Characters() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {list.map((c: any) => (
               <span key={c.character} className={`chip ${c.character === char ? 'on' : ''}`} style={{ fontFamily: 'var(--serif)', fontSize: 16 }}
-                onClick={() => nav(`/library/characters/${encodeURIComponent(c.character)}`)}>{c.character}</span>
+                onClick={() => nav(`/library/characters/${encodeURIComponent(c.character)}`)}><RareText>{c.character}</RareText></span>
             ))}
           </div>
         </div>
@@ -62,7 +63,7 @@ export default function Characters() {
         <div className="panel" style={{ marginTop: 20 }}>
           <div className="panel-head"><span className="panel-title">相关器铭</span></div>
           <Table rowKey="id" pagination={false} dataSource={data?.vessels || []} onRow={(r: any) => ({ onClick: () => nav(`/library/vessels/${r.id}`), style: { cursor: 'pointer' } })}
-            columns={[{ title: '器名', dataIndex: 'name' }, { title: '时代', dataIndex: 'period' }, { title: '出土', dataIndex: 'find_place' }, { title: '现藏', dataIndex: 'collection' }]} />
+            columns={[{ title: '器名', dataIndex: 'name', render: (value: string) => <RareText>{value}</RareText> }, { title: '时代', dataIndex: 'period' }, { title: '出土', dataIndex: 'find_place' }, { title: '现藏', dataIndex: 'collection' }]} />
         </div>
       ) : (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginTop: 20 }}>
@@ -71,7 +72,7 @@ export default function Characters() {
             return (
               <div className="panel" key={s}>
                 <div className="panel-head">
-                  <span className="panel-title"><span className="dim">0{i + 1}</span>　{s}</span>
+                  <span className="panel-title"><span className="dim">0{i + 1}</span>　<RareText>{s}</RareText></span>
                   {g?.vessel_id ? <a onClick={() => nav(`/library/vessels/${g.vessel_id}`)}>查看出处 ↗</a> : <span className="note">{g?.source || '暂无'}</span>}
                 </div>
                 <div className="stat-card" style={{ height: 240, display: 'grid', placeItems: 'center', color: '#2f6f5e' }}>
@@ -100,7 +101,7 @@ export default function Characters() {
           <div className="panel-head"><span className="panel-title">音</span><span className="panel-cap">READINGS · 方言今读仅作辅助证据</span></div>
           {(data?.readings || []).length === 0 && <div className="empty">暂无读音条目</div>}
           {(data?.readings || []).map((r: any, i: number) => (
-            <div key={i} className="row-line"><span><Tag>{r.layer}</Tag><span className="mono">{r.value}</span></span><span className="note">{r.source}</span></div>
+            <div key={i} className="row-line"><span><Tag>{r.layer}</Tag><span className="mono">{r.value}</span></span><span className="note"><RareText>{r.source}</RareText></span></div>
           ))}
         </div>
         <div className="panel">
@@ -110,7 +111,7 @@ export default function Characters() {
           </div>
           <div className="note" style={{ marginBottom: 10 }}>含此字的已审核器铭：</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(data?.vessels || []).map((v: any) => <span key={v.id} className="chip" onClick={() => nav(`/library/vessels/${v.id}`)}>{v.name}</span>)}
+            {(data?.vessels || []).map((v: any) => <span key={v.id} className="chip" onClick={() => nav(`/library/vessels/${v.id}`)}><RareText>{v.name}</RareText></span>)}
             {(data?.vessels || []).length === 0 && <span className="note">暂无</span>}
           </div>
         </div>

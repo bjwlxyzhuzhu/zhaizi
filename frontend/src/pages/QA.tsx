@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,16 +9,16 @@ import { useAuth } from '../store'
 import { EvidenceDrawer, Grade, GRADE_TEXT, refreshMe } from '../components/ui'
 
 export function Answer({ m, onCite }: { m: any; onCite: (cid: string) => void }) {
-  if (m.status !== 'ok') return <div style={{ color: '#ff9c86' }}>{m.content}</div>
+  if (m.status !== 'ok') return <div style={{ color: '#ff9c86' }}><RareText>{m.content}</RareText></div>
   const grades: Record<string, string> = Object.fromEntries((m.citations || []).map((c: any) => [c.cid, c.grade]))
   return (
     <div>
       {(m.segments || []).map((s: any, i: number) => (
         <span key={i}>
-          <span className={s.grade === 'D' ? 'seg-D' : ''} title={s.grade === 'D' ? '模型推测，未经核验' : undefined}>{s.text}</span>
+          <span className={s.grade === 'D' ? 'seg-D' : ''} title={s.grade === 'D' ? '模型推测，未经核验' : undefined}><RareText>{s.text}</RareText></span>
           {s.cites.map((c: string) => (
             <span key={c} className={`cite ${grades[c] || ''}`} onClick={() => onCite(c)}>
-              {grades[c]} · {c}
+              {grades[c]} · <RareText>{c}</RareText>
             </span>
           ))}
           {s.grade === 'D' && <span className="d-flag">D · 推测，未经核验</span>}
@@ -140,7 +141,7 @@ export default function QA() {
             {sessions.length === 0 && <div className="empty">还没有会话</div>}
             {sessions.map((s: any) => (
               <div key={s.id} className={`sess ${s.id === sid ? 'on' : ''}`} onClick={() => { setSid(s.id); setSelected(null) }}>
-                <div className="t">{s.title}</div>
+                <div className="t"><RareText>{s.title}</RareText></div>
                 <div className="s" style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>{s.updated_at.replace('T', ' ').slice(5)}</span>
                   <Popconfirm title="删除该会话？" onConfirm={(e) => { e?.stopPropagation(); api.del(`/qa/sessions/${s.id}`).then(() => { if (s.id === sid) setSid(null); refetchSessions() }) }}>
@@ -177,7 +178,7 @@ export default function QA() {
                 <div className="note">每个判断后附引用角标与证据等级（A 原器拓片 · B 权威著录 · C 辅助资料或学界异说 · D 模型推测）。库内没有出处时，系统会明确回答“库内暂无相关资料”。</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 22 }}>
                   {['何尊铭文中“宅兹中国”应如何理解？', '大盂鼎记载了哪些赏赐？', '岐山方言里“宅”怎么读？', '唐代长安有多少人口？'].map((e) => (
-                    <span key={e} className="chip" onClick={() => ask(e)}>{e}</span>
+                    <span key={e} className="chip" onClick={() => ask(e)}><RareText>{e}</RareText></span>
                   ))}
                 </div>
               </div>
@@ -185,7 +186,7 @@ export default function QA() {
             {isFetching && !messages.length && <Spin style={{ margin: 'auto' }} />}
             {messages.map((m) =>
               m.role === 'user' ? (
-                <div key={m.id} className="bubble-q">{m.content}</div>
+                <div key={m.id} className="bubble-q"><RareText>{m.content}</RareText></div>
               ) : (
                 <div key={m.id} className={`bubble-a ${m.status !== 'ok' ? 'failed' : ''}`} onClick={() => setSelected(m.id)}
                   style={{ borderColor: lastAnswer?.id === m.id && m.status === 'ok' ? 'rgba(201,164,92,.35)' : undefined }}>
@@ -253,7 +254,7 @@ export default function QA() {
                   <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <Grade g={c.grade} />
                     <span>
-                      <div>{c.title}</div>
+                      <div><RareText>{c.title}</RareText></div>
                       <div className="note">{GRADE_TEXT[c.grade]} · [{c.cid}]</div>
                     </span>
                   </span>

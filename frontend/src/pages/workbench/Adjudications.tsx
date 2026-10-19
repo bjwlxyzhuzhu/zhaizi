@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { App, Button, Checkbox, Empty, Input, Tag } from 'antd'
@@ -60,7 +61,7 @@ export default function Adjudications() {
           {data.map((a: any, i: number) => (
             <div key={a.id} onClick={() => pick(a)} style={{ padding: '14px 12px', borderRadius: 10, cursor: 'pointer', marginBottom: 4,
               background: cur?.id === a.id ? 'rgba(47,111,94,.12)' : undefined, borderBottom: '1px solid var(--line)' }}>
-              <div style={{ fontWeight: 600 }}>卷宗 {String(i + 1).padStart(2, '0')} · {a.title}</div>
+              <div style={{ fontWeight: 600 }}>卷宗 <RareText>{String(i + 1).padStart(2, '0')}</RareText> · <RareText>{a.title}</RareText></div>
               <div className="note">
                 {status === 'pending' ? `模型候选 · 待裁断 · 置信 ${a.confidence}%` : `${({ adopt: '采纳', revise: '修订', reject: '否决' } as any)[a.decision]} · ${a.researcher}`}
               </div>
@@ -80,7 +81,7 @@ export default function Adjudications() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="stat-card">
                   <div className="note">候选字</div>
-                  <div className="serif" style={{ fontSize: 64, color: '#2f6f5e', fontWeight: 700 }}>{candChar || '—'}</div>
+                  <div className="serif" style={{ fontSize: 64, color: '#2f6f5e', fontWeight: 700 }}><RareText>{candChar || '—'}</RareText></div>
                 </div>
                 <div className="stat-card">
                   <div className="note">资料状态</div>
@@ -88,8 +89,8 @@ export default function Adjudications() {
                   <div className="note">模型置信 {cur.confidence}%</div>
                 </div>
               </div>
-              {cur.question && cur.question !== '（种子示例）' && <div className="note" style={{ marginTop: 14 }}>原问题：{cur.question}</div>}
-              <div style={{ marginTop: 12, lineHeight: 1.9, maxHeight: 220, overflowY: 'auto', whiteSpace: 'pre-wrap', fontSize: 14 }} className="stat-card">{cur.candidate}</div>
+              {cur.question && cur.question !== '（种子示例）' && <div className="note" style={{ marginTop: 14 }}>原问题：<RareText>{cur.question}</RareText></div>}
+              <div style={{ marginTop: 12, lineHeight: 1.9, maxHeight: 220, overflowY: 'auto', whiteSpace: 'pre-wrap', fontSize: 14 }} className="stat-card"><RareText>{cur.candidate}</RareText></div>
               <div style={{ marginTop: 14, lineHeight: 1.9 }}>研究员应核对拓片、著录与上下文，明确记录裁断依据；平台不得将模型候选直接升级为已审定结论。</div>
             </>
           )}
@@ -102,7 +103,7 @@ export default function Adjudications() {
               {(cur.evidence || []).length === 0 && <div className="note">无引用证据</div>}
               {(cur.evidence || []).map((e: any) => (
                 <div key={e.cid} className="row-line" style={{ cursor: 'pointer' }} onClick={() => setCite(e.cid)}>
-                  <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}><Grade g={e.grade} /><span><div>{e.title}</div><div className="note">{GRADE_TEXT[e.grade]}</div></span></span>
+                  <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}><Grade g={e.grade} /><span><div><RareText>{e.title}</RareText></div><div className="note">{GRADE_TEXT[e.grade]}</div></span></span>
                   <span className="dim">查看 ↗</span>
                 </div>
               ))}
@@ -113,17 +114,19 @@ export default function Adjudications() {
                     style={{ textAlign: 'center', fontSize: 20, fontFamily: 'var(--serif)', fontWeight: 700, cursor: readonly ? 'default' : 'pointer', padding: 20,
                       background: decision === k ? (k === 'reject' ? 'rgba(181,69,47,.12)' : 'rgba(47,111,94,.14)') : undefined,
                       borderColor: decision === k ? (k === 'reject' ? '#b5452f' : '#2f6f5e') : undefined }}>
-                    {t}
+                    <RareText>{t}</RareText>
                   </div>
                 ))}
               </div>
               {decision === 'revise' && (
                 <>
                   <div className="serif" style={{ fontSize: 17, margin: '18px 0 8px' }}>修订结果</div>
+                  <div style={{ marginBottom: 10, lineHeight: 2 }}><RareText>{revised}</RareText></div>
                   <Input.TextArea value={revised} onChange={(e) => setRevised(e.target.value)} autoSize={{ minRows: 2 }} disabled={readonly || cur.status !== 'pending'} placeholder="修订后的释读结论" />
                 </>
               )}
               <div className="serif" style={{ fontSize: 17, margin: '18px 0 8px' }}>裁断理由</div>
+              <div style={{ marginBottom: 10, lineHeight: 2 }}><RareText>{reason}</RareText></div>
               <Input.TextArea value={reason} onChange={(e) => setReason(e.target.value)} autoSize={{ minRows: 4 }} disabled={readonly || cur.status !== 'pending'}
                 placeholder="请填写充分的文字学依据、参考文献与修订说明……" />
               <div className="row-line" style={{ borderBottom: 0 }}>

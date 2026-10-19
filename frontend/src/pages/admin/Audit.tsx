@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Input, Select, Space, Table, Tag } from 'antd'
@@ -21,8 +22,8 @@ export default function Audit() {
           columns={[
             { title: '时间', dataIndex: 'created_at', width: 170, render: (v) => v.replace('T', ' ') },
             { title: '操作人', dataIndex: 'actor', width: 110 }, { title: '操作', dataIndex: 'action', width: 130, render: (v) => <Tag>{v}</Tag> },
-            { title: '对象', dataIndex: 'target' },
-            { title: '详情', dataIndex: 'detail', render: (d) => <span className="note mono">{JSON.stringify(d)}</span> },
+            { title: '对象', dataIndex: 'target', render: (value: string) => <RareText>{value}</RareText> },
+            { title: '详情', dataIndex: 'detail', render: (d) => <span className="note mono"><RareText>{JSON.stringify(d)}</RareText></span> },
             { title: 'IP', dataIndex: 'ip', width: 120 },
           ]} />
       </div>

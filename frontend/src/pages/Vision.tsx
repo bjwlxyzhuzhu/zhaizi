@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -102,7 +103,7 @@ export default function Vision() {
             <p>{decl ? '拖拽拓片或器物照片到此，或点击选择' : '请先在下方选择材料来源声明'}</p>
             <p className="note">JPG / PNG · ≤10MB</p>
           </Upload.Dragger>
-          {file && <div className="note" style={{ marginTop: 8 }}>已选择：{file.name}</div>}
+          {file && <div className="note" style={{ marginTop: 8 }}>已选择：<RareText>{file.name}</RareText></div>}
           <Button size="small" type="link" style={{ padding: 0, marginTop: 6 }} onClick={async () => {
             const blob = await fetch('/img/vessels/hezun_inscription.png').then((r) => r.blob())
             const f = new File([blob], '何尊铭文拓片.png', { type: 'image/png' })
@@ -154,7 +155,7 @@ export default function Vision() {
                 style={{ height: 110, display: 'grid', placeItems: 'center', cursor: c.char ? 'pointer' : 'default', borderColor: i === cand && c.char ? 'var(--gold)' : undefined }}>
                 {c.char ? (
                   <div style={{ textAlign: 'center' }}>
-                    <div className="serif" style={{ fontSize: 46, color: 'var(--gold-2)', lineHeight: 1.1 }}>{c.char}</div>
+                    <div className="serif" style={{ fontSize: 46, color: 'var(--gold-2)', lineHeight: 1.1 }}><RareText>{c.char}</RareText></div>
                     <div className="note">{Math.round(c.score * 100)}%</div>
                   </div>
                 ) : (
@@ -182,7 +183,7 @@ export default function Vision() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div className="stat-card">
                   <div className="note">当前字头</div>
-                  <div className="serif" style={{ fontSize: 76, color: 'var(--gold-2)', lineHeight: 1.2 }}>{curChar || '—'}</div>
+                  <div className="serif" style={{ fontSize: 76, color: 'var(--gold-2)', lineHeight: 1.2 }}><RareText>{curChar || '—'}</RareText></div>
                 </div>
                 <div className="stat-card">
                   <div className="note">处理状态</div>
@@ -199,7 +200,7 @@ export default function Vision() {
                 <div key={c.cid} className="row-line" style={{ cursor: 'pointer' }} onClick={() => setCite(c.cid)}>
                   <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <Grade g={c.grade} />
-                    <span><div>{c.title}</div><div className="note">{GRADE_TEXT[c.grade]}</div></span>
+                    <span><div><RareText>{c.title}</RareText></div><div className="note">{GRADE_TEXT[c.grade]}</div></span>
                   </span>
                   <span className="dim">查看 ↗</span>
                 </div>
@@ -209,7 +210,7 @@ export default function Vision() {
             textCites.length ? (
               textCites.map((c) => (
                 <div key={c.cid} className="row-line" style={{ cursor: 'pointer' }} onClick={() => setCite(c.cid)}>
-                  <span>{c.title}</span><Grade g={c.grade} />
+                  <span><RareText>{c.title}</RareText></span><Grade g={c.grade} />
                 </div>
               ))
             ) : (
@@ -234,7 +235,7 @@ export default function Vision() {
                   <span key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className="stat-card" style={{ padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <GlyphView char={curChar} script={s} image={charInfo?.glyphs?.find((g: any) => g.script === s)?.image_path} size={30} />
-                      <span className="note">{s}</span>
+                      <span className="note"><RareText>{s}</RareText></span>
                     </span>
                     {i < 2 && <span className="gold">→</span>}
                   </span>

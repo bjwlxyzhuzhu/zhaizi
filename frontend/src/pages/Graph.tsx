@@ -1,3 +1,4 @@
+import { RareText, SvgRareText } from '../components/RareText'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -35,12 +36,12 @@ function Radial2D({ node, onPick }: { node: any; onPick: (id: number) => void })
           <g key={n.edge_id} style={{ cursor: 'pointer' }} onClick={() => onPick(n.id)}>
             <line x1={cx} y1={cy} x2={x} y2={y} stroke="#3f8f7a" strokeOpacity={0.7} />
             <circle cx={x} cy={y} r={38} fill="#123029" stroke={NODE_COLORS[n.type]} strokeOpacity={0.6} />
-            <text x={x} y={y + 6} textAnchor="middle" fill="#efe6cf" fontSize={n.name.length > 3 ? 12 : 17} fontFamily="var(--serif)">{n.name.slice(0, 6)}</text>
+            <SvgRareText x={x} y={y} size={Array.from(n.name).length > 3 ? 12 : 17} text={Array.from(n.name).slice(0, 6).join('')} />
           </g>
         )
       })}
       <circle cx={cx} cy={cy} r={86} fill="#2a2f22" stroke="#c9a45c" strokeWidth={2} />
-      <text x={cx} y={cy + 10} textAnchor="middle" fill="#f3e2b8" fontSize={28} fontFamily="var(--serif)">{node.name.slice(0, 5)}</text>
+      <SvgRareText x={cx} y={cy} size={28} text={Array.from(node.name).slice(0, 5).join('')} />
     </svg>
   )
 }
@@ -169,7 +170,7 @@ export default function Graph() {
         <div className="page-title" style={{ fontSize: 34 }}>从一件器物，读懂一张文明网络</div>
         <AutoComplete
           style={{ width: 420, marginTop: 10 }}
-          options={options.map((o: any) => ({ value: String(o.id), label: <span><Tag color={NODE_COLORS[o.type]} style={{ color: '#111' }}>{o.type}</Tag>{o.name}</span> }))}
+          options={options.map((o: any) => ({ value: String(o.id), label: <span><Tag color={NODE_COLORS[o.type]} style={{ color: '#111' }}>{o.type}</Tag><RareText>{o.name}</RareText></span> }))}
           onSearch={setQ}
           onSelect={(v) => { focus(Number(v)); setQ('') }}
           value={q}
@@ -188,7 +189,7 @@ export default function Graph() {
         <div className="legend" style={{ marginTop: 14, maxWidth: 520 }}>
           {TYPES.map((t) => (
             <span key={t} className={hidden.has(t) ? 'off' : ''} onClick={() => setHidden((h) => { const n = new Set(h); n.has(t) ? n.delete(t) : n.add(t); return n })}>
-              <i style={{ background: NODE_COLORS[t], color: NODE_COLORS[t] }} />{t} {counts[t] ?? ''}
+              <i style={{ background: NODE_COLORS[t], color: NODE_COLORS[t] }} /><RareText>{t}</RareText> {counts[t] ?? ''}
             </span>
           ))}
         </div>
@@ -204,7 +205,7 @@ export default function Graph() {
             <div className="serif" style={{ marginBottom: 10 }}>从这里开始</div>
             {nodes.filter((n) => n.type === '器').slice(0, 10).map((n) => (
               <div key={n.id} className="row-line" style={{ cursor: 'pointer' }} onClick={() => focus(n.id)}>
-                <span><span className="gold" style={{ marginRight: 8 }}>器</span>{n.name}</span><span className="dim">↗</span>
+                <span><span className="gold" style={{ marginRight: 8 }}>器</span><RareText>{n.name}</RareText></span><span className="dim">↗</span>
               </div>
             ))}
             <Button block className="btn-gold" style={{ marginTop: 18 }} onClick={() => runPath()}>探索何尊关联路径</Button>
@@ -216,13 +217,13 @@ export default function Graph() {
               <span className="panel-cap">{detail.type} · 连接 {detail.degree}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="serif" style={{ fontSize: 30 }}>{detail.name}</span>
+              <span className="serif" style={{ fontSize: 30 }}><RareText>{detail.name}</RareText></span>
               <span className="tag-gold" style={{ borderColor: NODE_COLORS[detail.type], color: NODE_COLORS[detail.type] }}>{detail.type}节点</span>
               {detail.props?.grade && <Grade g={detail.props.grade} />}
             </div>
             {detail.props?.desc && <div style={{ lineHeight: 1.9, margin: '12px 0', fontSize: 14 }}>{detail.props.desc}</div>}
             {Object.entries(detail.props || {}).filter(([k]) => !['desc', 'grade'].includes(k)).map(([k, v]) => (
-              <div key={k} className="note">{({ period: '时代', collection: '现藏', char_count: '字数', script: '书体', ipa: '音标', meaning: '词义' } as any)[k] || k}：{String(v)}</div>
+              <div key={k} className="note">{({ period: '时代', collection: '现藏', char_count: '字数', script: '书体', ipa: '音标', meaning: '词义' } as any)[k] || k}：<RareText>{String(v)}</RareText></div>
             ))}
             <div style={{ display: 'flex', gap: 8, margin: '14px 0' }}>
               {link && <Button size="small" onClick={() => nav(link)}>资料库详情</Button>}
@@ -238,7 +239,7 @@ export default function Graph() {
                 <div className="note" style={{ color: NODE_COLORS[type], margin: '8px 0 2px' }}>{type} · {list.length}</div>
                 {list.slice(0, 16).map((n: any) => (
                   <div key={n.edge_id} className="row-line" style={{ padding: '8px 0', cursor: 'pointer' }} onClick={() => focus(n.id)}>
-                    <span><b className="gold" style={{ marginRight: 8, fontWeight: 400 }}>{n.rel}</b>{n.name}</span>
+                    <span><b className="gold" style={{ marginRight: 8, fontWeight: 400 }}>{n.rel}</b><RareText>{n.name}</RareText></span>
                     <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Grade g={n.grade} /><span className="dim">↗</span></span>
                   </div>
                 ))}
@@ -246,12 +247,12 @@ export default function Graph() {
               </div>
             ))}
             {Object.keys(neighborGroups).length > 0 && (
-              <div className="note" style={{ marginTop: 10 }}>出处：{Array.from(new Set(Object.values(neighborGroups).flat().map((n: any) => n.src))).slice(0, 3).join('；')}</div>
+              <div className="note" style={{ marginTop: 10 }}>出处：<RareText>{Array.from(new Set(Object.values(neighborGroups).flat().map((n: any) => n.src))).slice(0, 3).join('；')}</RareText></div>
             )}
           </>
         )}
       </div>
-      <div className="hint-bar">拖拽旋转 · 滚轮缩放 · 点击聚焦 · 双击展开{selected && nodeName(selected) ? ` · 当前：${nodeName(selected)}` : ''}</div>
+      <div className="hint-bar">拖拽旋转 · 滚轮缩放 · 点击聚焦 · 双击展开<RareText>{selected && nodeName(selected) ? ` · 当前：${nodeName(selected)}` : ''}</RareText></div>
       <SearchOutlined style={{ display: 'none' }} />
     </div>
   )

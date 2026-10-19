@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Descriptions, Image, Skeleton } from 'antd'
@@ -11,9 +12,9 @@ export default function VesselDetail() {
   const { data: v, isLoading, error } = useQuery({ queryKey: ['vessel', id], queryFn: () => api.get(`/lib/vessels/${id}`) })
   if (isLoading) return <div className="page"><Skeleton active /></div>
   if (error || !v) return <div className="page"><div className="empty">条目不存在或无权查看</div></div>
-  const chars = Array.from(new Set((v.inscriptions[0]?.transcription || '').split('').filter((c: string) => /[一-鿿]/.test(c)))).slice(0, 40) as string[]
+  const chars = Array.from(new Set(Array.from(String(v.inscriptions[0]?.transcription || '')).filter(c => /\p{Script=Han}/u.test(c)))).slice(0, 40)
   return (
-    <div className="page">
+    <div className="page vessel-detail-page">
       <a onClick={() => nav(-1)}><ArrowLeftOutlined /> 返回</a>
       <PageHead
         cap={`VESSEL · ${v.category}`}
@@ -30,16 +31,16 @@ export default function VesselDetail() {
         <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="vessel-card" style={{ border: 0, cursor: 'default' }}>
             <div className="img" style={{ height: 340, backgroundImage: v.image ? `url(${imgUrl(v.image)})` : undefined }}>
-              {!v.image && <div className="vessel-ph" style={{ fontSize: 120 }}>{v.name.slice(0, 1)}</div>}
+              {!v.image && <div className="vessel-ph" style={{ fontSize: 120 }}><RareText>{Array.from(String(v.name))[0]}</RareText></div>}
             </div>
           </div>
           <div style={{ padding: 22 }}>
             <Descriptions column={1} size="small" items={[
-              { label: '类别', children: v.category }, { label: '时代', children: v.period },
-              { label: '出土', children: `${v.find_place}${v.find_date ? '，' + v.find_date : ''}` },
-              { label: '现藏', children: v.collection }, { label: '著录', children: v.catalog_refs },
+              { label: '类别', children: <RareText>{v.category}</RareText> }, { label: '时代', children: <RareText>{v.period}</RareText> },
+              { label: '出土', children: <RareText>{`${v.find_place}${v.find_date ? '，' + v.find_date : ''}`}</RareText> },
+              { label: '现藏', children: <RareText>{v.collection}</RareText> }, { label: '著录', children: <RareText>{v.catalog_refs}</RareText> },
               { label: '证据等级', children: <span><Grade g={v.evidence_grade} /> {GRADE_TEXT[v.evidence_grade]}</span> },
-              { label: '数据分级', children: v.level }, { label: '来源', children: <span className="note">{v.source}</span> },
+              { label: '数据分级', children: v.level }, { label: '来源', children: <span className="note"><RareText>{v.source}</RareText></span> },
             ]} />
             {v.gallery?.length > 0 && (
               <Image.PreviewGroup>
@@ -47,7 +48,7 @@ export default function VesselDetail() {
                   {v.gallery.map((g: any) => (
                     <div key={g.url} style={{ textAlign: 'center' }}>
                       <Image src={imgUrl(g.url)} alt={g.caption} height={96} style={{ objectFit: 'contain', background: '#101614', borderRadius: 8, width: '100%' }} />
-                      <div className="note">{g.caption.split('·').pop()}</div>
+                      <div className="note"><RareText>{g.caption.split('·').pop()}</RareText></div>
                     </div>
                   ))}
                 </div>
@@ -59,25 +60,26 @@ export default function VesselDetail() {
         <div className="grid">
           <div className="panel">
             <div className="panel-head"><span className="panel-title">器物简介</span></div>
-            <div style={{ lineHeight: 2, fontSize: 15 }}>{v.description}</div>
+            <div style={{ lineHeight: 2, fontSize: 15 }}><RareText>{v.description}</RareText></div>
           </div>
           {v.inscriptions.map((i: any) => (
             <div className="panel" key={i.id}>
               <div className="panel-head">
                 <span className="panel-title">铭文释文</span>
-                <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Grade g={i.evidence_grade} /><span className="note">{i.char_count} 字 · {i.source}</span></span>
+                <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Grade g={i.evidence_grade} /><span className="note">{i.char_count} 字 · <RareText>{i.source}</RareText></span></span>
               </div>
-              <div className="serif" style={{ fontSize: 19, lineHeight: 2.1, letterSpacing: 1 }}>{i.transcription}</div>
+              <div className="note" style={{ marginBottom: 12 }}>生僻字上方标注现代汉语拼音；多音字并列词典读音，不代表古音或通假释读。</div>
+              <div className="serif" style={{ fontSize: 19, lineHeight: 2.1, letterSpacing: 1 }}><RareText>{i.transcription}</RareText></div>
               {i.interpretation && (
                 <>
                   <div className="serif" style={{ fontSize: 16, margin: '18px 0 6px' }}>通读</div>
-                  <div style={{ lineHeight: 2 }}>{i.interpretation}</div>
+                  <div style={{ lineHeight: 2 }}><RareText>{i.interpretation}</RareText></div>
                 </>
               )}
               <div className="serif" style={{ fontSize: 16, margin: '18px 0 10px' }}>字形切图入口</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {chars.map((c) => (
-                  <span key={c} className="chip" style={{ padding: '4px 12px', fontFamily: 'var(--serif)', fontSize: 16 }} onClick={() => nav(`/library/characters/${encodeURIComponent(c)}`)}>{c}</span>
+                  <span key={c} className="chip" style={{ padding: '4px 12px', fontFamily: 'var(--serif)', fontSize: 16 }} onClick={() => nav(`/library/characters/${encodeURIComponent(c)}`)}><RareText>{c}</RareText></span>
                 ))}
               </div>
             </div>
@@ -87,8 +89,8 @@ export default function VesselDetail() {
               <div className="panel-head"><span className="panel-title">传世文献对读</span><a onClick={() => nav('/library/texts')}>全部文献 →</a></div>
               {v.texts.map((t: any) => (
                 <div key={t.id} className="row-line" style={{ alignItems: 'flex-start' }}>
-                  <span className="serif" style={{ minWidth: 140 }}>《{t.title}·{t.chapter}》</span>
-                  <span style={{ flex: 1, lineHeight: 1.9 }}>{t.content}</span>
+                  <span className="serif" style={{ minWidth: 140 }}>《<RareText>{t.title}</RareText>·<RareText>{t.chapter}</RareText>》</span>
+                  <span style={{ flex: 1, lineHeight: 1.9 }}><RareText>{t.content}</RareText></span>
                 </div>
               ))}
             </div>

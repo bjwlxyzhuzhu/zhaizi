@@ -5,6 +5,7 @@ ARG NPM_REGISTRY=https://registry.npmjs.org
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --registry=${NPM_REGISTRY}
 COPY frontend/ ./
+COPY backend/app/data/ /srv/backend/app/data/
 RUN npm run build
 
 FROM python:3.11-slim

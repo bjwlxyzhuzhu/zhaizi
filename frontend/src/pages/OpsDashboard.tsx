@@ -1,3 +1,4 @@
+import { RareText } from '../components/RareText'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -21,7 +22,7 @@ function OpsClock() {
 }
 
 function Panel({ title, cap, extra, children, className = '' }: { title: string; cap: string; extra?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`ops-panel ${className}`}><header><h2>{title}<small>{cap}</small></h2>{extra}</header><div className="ops-panel-body">{children}</div></section>
+  return <section className={`ops-panel ${className}`}><header><h2><RareText>{title}</RareText><small>{cap}</small></h2>{extra}</header><div className="ops-panel-body">{children}</div></section>
 }
 
 function donut(items: { name: string; value: number }[]) {
@@ -54,8 +55,8 @@ function RegionMap({ districts }: { districts: { name: string; value: number }[]
   const ranked = [...districts].sort((a, b) => b.value - a.value).filter(x => x.value > 0)
   return <div className="ops-region"><svg viewBox="0 0 265 180" role="img" aria-label="宝鸡区县器铭资源分布图">{features.map(f => {
     const count = districts.find(d => d.name === f.name)?.value || 0
-    return <path key={f.name} d={f.path} fill={count ? '#53826a' : '#223e31'} fillRule="evenodd" stroke={count ? '#cfb571' : '#55705b'} strokeWidth=".85"><title>{f.name}：{count} 件已审核器铭</title></path>
-  })}</svg><div className="ops-region-rank">{ranked.slice(0, 5).map((d, i) => <div key={d.name}><span><em>{String(i + 1).padStart(2, '0')}</em>{d.name}</span><b>{d.value}<small>件</small></b></div>)}{!ranked.length && <p>尚无器铭区县记录</p>}<small className="ops-map-note">宝鸡 12 区县 · DataV 行政边界</small></div></div>
+    return <path key={f.name} d={f.path} fill={count ? '#53826a' : '#223e31'} fillRule="evenodd" stroke={count ? '#cfb571' : '#55705b'} strokeWidth=".85"><title><RareText>{f.name}</RareText>：{count} 件已审核器铭</title></path>
+  })}</svg><div className="ops-region-rank">{ranked.slice(0, 5).map((d, i) => <div key={d.name}><span><em><RareText>{String(i + 1).padStart(2, '0')}</RareText></em><RareText>{d.name}</RareText></span><b>{d.value}<small>件</small></b></div>)}{!ranked.length && <p>尚无器铭区县记录</p>}<small className="ops-map-note">宝鸡 12 区县 · DataV 行政边界</small></div></div>
 }
 
 export default function OpsDashboard() {
@@ -72,7 +73,7 @@ export default function OpsDashboard() {
     observer.observe(el); fit()
     return () => observer.disconnect()
   }, [])
-  const link = (title: string, path: string) => <button className="ops-panel-link" onClick={() => nav(path)} aria-label={title}>{title}<ArrowRightOutlined /></button>
+  const link = (title: string, path: string) => <button className="ops-panel-link" onClick={() => nav(path)} aria-label={title}><RareText>{title}</RareText><ArrowRightOutlined /></button>
   if (error && !data) return <div className="ops-console ops-loading" ref={root}><p>运营数据暂时无法读取</p><Button onClick={() => refetch()}>重新加载</Button></div>
   const d = data
   const roles = d ? Object.entries(d.users.by_role).map(([name, value]) => ({ name: ROLE[name] || name, value: value as number })) : []
@@ -95,18 +96,18 @@ export default function OpsDashboard() {
       ].map((k, i) => <div className="ops-kpi-tile" key={k.label}><div className="ops-kpi-icon">{k.icon}</div><div><h2>{k.label}</h2><strong>{number(k.value)}<small>{k.unit}</small></strong><p>{k.detail}</p></div><span className="ops-kpi-index">0{i + 1}</span></div>)}</div>
       <div className="ops-main-grid">
         <div className="ops-stack">
-          <Panel title="协作用户结构" cap="COLLABORATION" extra={link('用户管理', '/admin/users')}><div className="ops-split"><div className="ops-user-ring"><EChart height="100%" option={donut(roles)} /><div><strong>{d.users.total}</strong><small>平台用户</small></div></div><div className="ops-legend">{roles.map((x, i) => <div key={x.name}><span><i style={{ background: COLORS[i] }} />{x.name}</span><b>{x.value}<small>人</small></b></div>)}</div></div></Panel>
+          <Panel title="协作用户结构" cap="COLLABORATION" extra={link('用户管理', '/admin/users')}><div className="ops-split"><div className="ops-user-ring"><EChart height="100%" option={donut(roles)} /><div><strong>{d.users.total}</strong><small>平台用户</small></div></div><div className="ops-legend">{roles.map((x, i) => <div key={x.name}><span><i style={{ background: COLORS[i] }} /><RareText>{x.name}</RareText></span><b>{x.value}<small>人</small></b></div>)}</div></div></Panel>
           <Panel title="用户活跃趋势" cap={`LAST ${d.days} DAYS`}><EChart height="100%" option={bars(d.users.dau_trend.map((x: any) => ({ name: x.date.slice(5), value: x.dau })))} /></Panel>
         </div>
         <div className="ops-center-stack">
           <Panel title="知识资产与智能体协同" cap="KNOWLEDGE INTELLIGENCE" className="ops-hub-panel" extra={<span className="ops-mini-tag">{d.knowledge.agents.filter((a: any) => a.enabled).length} / {d.knowledge.agents.length} 智能体启用</span>}>
-            <div className="ops-asset-hub"><div className="ops-asset-list">{d.assets.by_type.slice(0, 3).map((x: any, i: number) => <div key={x.name}><i style={{ background: COLORS[i] }} /><span>{x.name}</span><b>{number(x.value)}<small>条</small></b></div>)}</div><div className="ops-asset-orbit"><div className="ops-orbit-line" /><EChart height="100%" option={donut(d.assets.by_type)} /><div className="ops-orbit-core"><span>知识资产总量</span><strong>{number(d.assets.total)}</strong><small>已审核资料 / 条</small></div></div><div className="ops-asset-list">{d.assets.by_type.slice(3).map((x: any, i: number) => <div key={x.name}><i style={{ background: COLORS[i + 3] }} /><span>{x.name}</span><b>{number(x.value)}<small>条</small></b></div>)}<div className="ops-asset-graph"><ClusterOutlined /><span>语义关系</span><b>{number(d.assets.kg_edges)}<small>条</small></b></div></div></div>
-            <div className="ops-pipeline">{[['资料汇聚', `${d.assets.total} 条已审核`], ['知识检索', `${d.knowledge.chunks} 个公开分段`], ['智能体辅助', `${d.model.calls} 次运行`], ['专家治理', `${d.trust.adjudicated} 条已裁断`]].map(([title, count], i) => <div key={title}><em>0{i + 1}</em><span>{title}<small>{count}</small></span>{i < 3 && <ArrowRightOutlined />}</div>)}</div>
+            <div className="ops-asset-hub"><div className="ops-asset-list">{d.assets.by_type.slice(0, 3).map((x: any, i: number) => <div key={x.name}><i style={{ background: COLORS[i] }} /><span><RareText>{x.name}</RareText></span><b>{number(x.value)}<small>条</small></b></div>)}</div><div className="ops-asset-orbit"><div className="ops-orbit-line" /><EChart height="100%" option={donut(d.assets.by_type)} /><div className="ops-orbit-core"><span>知识资产总量</span><strong>{number(d.assets.total)}</strong><small>已审核资料 / 条</small></div></div><div className="ops-asset-list">{d.assets.by_type.slice(3).map((x: any, i: number) => <div key={x.name}><i style={{ background: COLORS[i + 3] }} /><span><RareText>{x.name}</RareText></span><b>{number(x.value)}<small>条</small></b></div>)}<div className="ops-asset-graph"><ClusterOutlined /><span>语义关系</span><b>{number(d.assets.kg_edges)}<small>条</small></b></div></div></div>
+            <div className="ops-pipeline">{[['资料汇聚', `${d.assets.total} 条已审核`], ['知识检索', `${d.knowledge.chunks} 个公开分段`], ['智能体辅助', `${d.model.calls} 次运行`], ['专家治理', `${d.trust.adjudicated} 条已裁断`]].map(([title, count], i) => <div key={title}><em>0{i + 1}</em><span><RareText>{title}</RareText><small>{count}</small></span>{i < 3 && <ArrowRightOutlined />}</div>)}</div>
           </Panel>
           <Panel title="智能体服务趋势" cap={`LAST ${d.days} DAYS`} extra={<span className="ops-panel-sub">按平台调用记录统计</span>}><EChart height="100%" option={trends} /></Panel>
         </div>
         <div className="ops-stack">
-          <Panel title="智能体与知识库" cap="AGENT SERVICES" extra={link('配置', '/admin/agents')}><div className="ops-knowledge-numbers"><div><strong>{d.knowledge.bases}</strong><span>自建知识库</span></div><div><strong>{d.knowledge.published}<small> / {d.knowledge.documents}</small></strong><span>发布 / 全部资料</span></div><div><strong>{d.knowledge.training_runs}</strong><span>索引训练记录</span></div></div><div className="ops-agent-status">{d.knowledge.agents.map((a: any) => <div key={a.id}><span><i className={a.enabled ? 'on' : ''} />{a.name}</span><small>{a.collections} 类资料 · {a.bases} 个自建库</small></div>)}</div><div className="ops-model-mode"><span>当前模型</span><b title={d.model_name}>{d.model_name}</b></div></Panel>
+          <Panel title="智能体与知识库" cap="AGENT SERVICES" extra={link('配置', '/admin/agents')}><div className="ops-knowledge-numbers"><div><strong>{d.knowledge.bases}</strong><span>自建知识库</span></div><div><strong>{d.knowledge.published}<small> / {d.knowledge.documents}</small></strong><span>发布 / 全部资料</span></div><div><strong>{d.knowledge.training_runs}</strong><span>索引训练记录</span></div></div><div className="ops-agent-status">{d.knowledge.agents.map((a: any) => <div key={a.id}><span><i className={a.enabled ? 'on' : ''} /><RareText>{a.name}</RareText></span><small>{a.collections} 类资料 · {a.bases} 个自建库</small></div>)}</div><div className="ops-model-mode"><span>当前模型</span><b title={d.model_name}><RareText>{d.model_name}</RareText></b></div></Panel>
           <Panel title="审核与可信质量" cap="TRUST & GOVERNANCE"><div className="ops-backlogs">{[[d.queues.assets, '资料待审', '/workbench/records'], [d.queues.tasks, '任务待审', '/workbench/submissions'], [d.queues.adjudications, '专家待裁', '/workbench/adjudications']].map(([value, label, path]) => <button key={label as string} onClick={() => nav(path as string)}><strong>{value}</strong><span>{label}</span></button>)}</div><div className="ops-quality">{[[d.trust.citation_accuracy, '引证准确率'], [d.trust.unsourced_rate, '无出处断言率'], [d.trust.adoption_rate, '专家采纳率']].map(([value, label]) => <div key={label as string}><b>{value == null ? '—' : `${value}%`}</b><span>{label}</span></div>)}</div><p className="ops-quality-note">已抽检 {d.trust.sampled} 条 · 已裁断 {d.trust.adjudicated} 条</p></Panel>
         </div>
       </div>

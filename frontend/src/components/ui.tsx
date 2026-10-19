@@ -1,3 +1,4 @@
+import { RareText } from './RareText'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Drawer, Skeleton, Tag } from 'antd'
@@ -32,9 +33,9 @@ export function PageHead({ cap = 'ZHAI ZI / RESEARCH SPACE', title, desc, extra 
   return (
     <div className="page-head rise">
       <div>
-        <div className="eyebrow">{cap}</div>
-        <h1 className="page-title">{title}</h1>
-        {desc && <div className="page-desc">{desc}</div>}
+        <div className="eyebrow"><RareText>{cap}</RareText></div>
+        <h1 className="page-title"><RareText>{title}</RareText></h1>
+        {desc && <div className="page-desc"><RareText>{desc}</RareText></div>}
       </div>
       {extra}
     </div>
@@ -47,7 +48,7 @@ export const imgUrl = (p?: string) => (!p ? '' : p.startsWith('/') || p.startsWi
 export function VesselImg({ image, name, height = 190 }: { image?: string; name: string; height?: number }) {
   return (
     <div className="img" style={{ height, backgroundImage: image ? `url(${imgUrl(image)})` : undefined }}>
-      {!image && <div className="vessel-ph">{name.slice(0, 1)}</div>}
+      {!image && <div className="vessel-ph"><RareText>{Array.from(name)[0]}</RareText></div>}
     </div>
   )
 }
@@ -60,7 +61,7 @@ const SCRIPT_STYLE: Record<string, React.CSSProperties> = {
 
 /** 字形：有研究员上传的切图则显示切图；否则用字体渲染占位并明确标注 */
 export function GlyphView({ char, script, image, size = 150, color = 'currentColor' }: { char: string; script: string; image?: string; size?: number; color?: string }) {
-  if (image) return <img src={`/api/files/${image}`} alt={`${char}·${script}`} style={{ height: size, objectFit: 'contain' }} />
+  if (image) return <div style={{ textAlign: 'center' }}><img src={`/api/files/${image}`} alt={`${char}·${script}`} style={{ height: size, objectFit: 'contain' }} /><div style={{ fontSize: 16, lineHeight: 2 }}><RareText>{char}</RareText></div></div>
   return (
     <div style={{ fontFamily: 'var(--serif)', fontSize: size * 0.82, lineHeight: 1, color, ...SCRIPT_STYLE[script] }}>
       <svg width="0" height="0" style={{ position: 'absolute' }}>
@@ -69,7 +70,7 @@ export function GlyphView({ char, script, image, size = 150, color = 'currentCol
           <feDisplacementMap in="SourceGraphic" in2="n" scale="6" />
         </filter>
       </svg>
-      {char}
+      <RareText>{char}</RareText>
     </div>
   )
 }
@@ -93,10 +94,10 @@ export function EvidenceDrawer({ cid, onClose }: { cid: string | null; onClose: 
         <div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
             <Grade g={d.grade} />
-            <span className="serif" style={{ fontSize: 20 }}>{d.title}</span>
+            <span className="serif" style={{ fontSize: 20 }}><RareText>{d.title}</RareText></span>
           </div>
           <div className="note">证据等级：{GRADE_TEXT[d.grade]} · 数据分级 {d.level}</div>
-          <div style={{ margin: '18px 0', lineHeight: 2, fontSize: 15, whiteSpace: 'pre-wrap' }}>{d.text}</div>
+          <div style={{ margin: '18px 0', lineHeight: 2, fontSize: 15, whiteSpace: 'pre-wrap' }}><RareText>{d.text}</RareText></div>
           {link && (
             <Button type="primary" onClick={() => { onClose(); nav(link) }}>
               在资料库中查看
@@ -111,7 +112,7 @@ export function EvidenceDrawer({ cid, onClose }: { cid: string | null; onClose: 
 export function refLink(table: string, id: number, title = ''): string | null {
   if (table === 'vessels') return `/library/vessels/${id}`
   if (table === 'glyphs') {
-    const m = title.match(/字形·(.)/)
+    const m = title.match(/字形·(.)/u)
     return m ? `/library/characters/${encodeURIComponent(m[1])}` : '/library/characters'
   }
   if (table === 'dialect_entries') return '/library/dialects'

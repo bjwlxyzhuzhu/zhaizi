@@ -72,6 +72,11 @@ jobs:
           docker cp scripts/admin_features_test.py zhaizi-smoke:/tmp/admin_features_test.py
           docker exec --env PYTHONPATH=/srv/backend zhaizi-smoke python /tmp/admin_features_test.py
 
+      - name: Verify inscription readings and export text preservation
+        run: |
+          docker cp scripts/reading_test.py zhaizi-smoke:/tmp/reading_test.py
+          docker exec --env PYTHONPATH=/srv/backend zhaizi-smoke python /tmp/reading_test.py
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3

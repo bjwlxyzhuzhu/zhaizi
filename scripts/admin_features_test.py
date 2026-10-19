@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from app.main import app
 from app.db import SessionLocal, engine
-from app.models import AuditLog, Chunk, SystemSetting, UsageLog
+from app.models import AuditLog, Chunk, SystemSetting, UsageLog, QASession, QAMessage
 from app import llm, retrieval
 
 
@@ -170,6 +170,32 @@ class AdminFeatures(unittest.TestCase):
         self.assertEqual(after["knowledge"]["training_runs"], 1)
         self.assertEqual(self.call("GET", "/dash/ops", account="r001").status_code, 403)
         self.assertEqual(self.call("GET", "/dash/ops?days=0").status_code, 422)
+
+
+    def test_06_readings_survive_report_export(self):
+        with SessionLocal() as db:
+            session = QASession(user_id=self.users["admin"]["id"], title="单逨与㝬簋")
+            db.add(session)
+            db.flush()
+            sid = session.id
+            original = '夨𢦚散邑。<script>alert("x")</script>'
+            message = QAMessage(session_id=sid, role="assistant", content=original,
+                                segments=[{"text": original, "cites": ["I1"], "grade": "B"}],
+                                citations=[{"cid": "I1", "title": "㝬簋", "grade": "B"}])
+            db.add(message)
+            db.commit()
+            mid = message.id
+        response = self.call("POST", f"/qa/sessions/{sid}/export", {}, account="admin")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("application/msword", response.headers["content-type"])
+        self.assertIn('>huài</rt>', response.text)
+        self.assertIn('>hú</rt>', response.text)
+        self.assertIn('>shàn</rt>', response.text)
+        self.assertIn("<sup>[I1]</sup>", response.text)
+        self.assertIn("&lt;script&gt;", response.text)
+        self.assertNotIn("<script>", response.text)
+        with SessionLocal() as db:
+            self.assertEqual(db.get(QAMessage, mid).content, original)
 
 
 if __name__ == "__main__":

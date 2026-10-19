@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { App, Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag, Upload } from 'antd'
@@ -108,7 +109,7 @@ export default function Records() {
         ) : <span className="tag-gold">管理员 · 只读</span>}
       />
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        {TABLES.map(([k, t]) => <span key={k} className={`chip ${table === k ? 'on' : ''}`} onClick={() => setTable(k)}>{t}</span>)}
+        {TABLES.map(([k, t]) => <span key={k} className={`chip ${table === k ? 'on' : ''}`} onClick={() => setTable(k)}><RareText>{t}</RareText></span>)}
         <span style={{ flex: 1 }} />
         {(['pending', 'approved', 'rejected', ''] as const).map((s) => (
           <span key={s} className={`chip ${status === s ? 'on' : ''}`} onClick={() => setStatus(s)}>
@@ -121,12 +122,12 @@ export default function Records() {
         <Table rowKey="id" dataSource={data?.items || []} pagination={{ pageSize: 12 }}
           columns={[
             { title: 'ID', dataIndex: 'id', width: 64 },
-            { title: '条目', dataIndex: 'title', render: (v) => <span className="serif" style={{ fontSize: 16 }}>{v}</span> },
-            { title: '分级', dataIndex: 'level', width: 70, render: (v) => <Tag color={v === 'L1' ? 'green' : v === 'L2' ? 'gold' : 'red'}>{v}</Tag> },
+            { title: '条目', dataIndex: 'title', render: (v) => <span className="serif" style={{ fontSize: 16 }}><RareText>{v}</RareText></span> },
+            { title: '分级', dataIndex: 'level', width: 70, render: (v) => <Tag color={v === 'L1' ? 'green' : v === 'L2' ? 'gold' : 'red'}><RareText>{v}</RareText></Tag> },
             { title: '状态', dataIndex: 'status', width: 90, render: (s) => <StatusTag s={s} /> },
             { title: '录入人', dataIndex: 'created_by', width: 110 },
             { title: '审核人', dataIndex: 'reviewed_by', width: 110 },
-            { title: '来源', dataIndex: 'source', ellipsis: true, render: (v) => <span className="note">{v}</span> },
+            { title: '来源', dataIndex: 'source', ellipsis: true, render: (v) => <span className="note"><RareText>{v}</RareText></span> },
             { title: '更新', dataIndex: 'updated_at', width: 150, render: (v) => v.replace('T', ' ') },
             {
               title: '操作', width: 260, render: (_, r: any) => (
@@ -147,7 +148,7 @@ export default function Records() {
           ]} />
       </div>
 
-      <Drawer title={edit?.id ? `编辑 · ${edit.title}` : '新增记录'} open={!!edit} width={560} onClose={() => setEdit(null)}
+      <Drawer title={<RareText>{edit?.id ? `编辑 · ${edit.title}` : '新增记录'}</RareText>} open={!!edit} width={560} onClose={() => setEdit(null)}
         extra={<Button type="primary" onClick={save}>保存（进入待审）</Button>} destroyOnClose>
         <Form form={form} layout="vertical">
           {FIELDS[table].map((f) => (
@@ -157,7 +158,7 @@ export default function Records() {
                 : f.type === 'grade' ? <Select options={['A', 'B', 'C', 'D'].map((g) => ({ value: g, label: `${g} 级` }))} />
                 : f.type === 'level' ? <Select options={[{ value: 'L1', label: 'L1 公开数据（可送云端模型）' }, { value: 'L2', label: 'L2 内部数据' }, { value: 'L3', label: 'L3 授权受限' }]} />
                 : f.type === 'script' ? <Select options={['金文', '石鼓文', '小篆'].map((s) => ({ value: s, label: s }))} />
-                : f.type === 'vessel' ? <Select allowClear showSearch optionFilterProp="label" options={vesselOpts} />
+                : f.type === 'vessel' ? <Select allowClear showSearch optionFilterProp="label" labelRender={o => <RareText>{o.label}</RareText>} optionRender={o => <RareText>{o.label}</RareText>} options={vesselOpts} />
                 : f.type === 'file' ? <FileField />
                 : <Input />}
             </Form.Item>
@@ -170,7 +171,7 @@ export default function Records() {
         <Button danger block style={{ marginTop: 12 }} onClick={() => review(reject, false, (document.getElementById('rej') as HTMLTextAreaElement).value)}>确认驳回</Button>
       </Modal>
 
-      <Modal title={`版本记录 · ${versions?.row?.title || ''}`} open={!!versions} onCancel={() => setVersions(null)} footer={null} width={820}>
+      <Modal title={<RareText>{`版本记录 · ${versions?.row?.title || ''}`}</RareText>} open={!!versions} onCancel={() => setVersions(null)} footer={null} width={820}>
         <Table rowKey="version" size="small" pagination={false} dataSource={versions?.list || []}
           expandable={{ expandedRowRender: (r: any, i: number) => <Diff a={versions.list[i + 1]?.data} b={r.data} /> }}
           columns={[
@@ -201,8 +202,8 @@ function Diff({ a, b }: { a?: any; b: any }) {
         return (
           <div key={k} style={{ display: 'flex', gap: 10, padding: '2px 0', background: changed ? 'rgba(201,164,92,.15)' : undefined }}>
             <span style={{ width: 120, color: '#7c847f' }}>{k}</span>
-            {changed && <span style={{ textDecoration: 'line-through', color: '#b5452f' }}>{String(a[k] ?? '')}</span>}
-            <span>{String(b[k] ?? '')}</span>
+            {changed && <span style={{ textDecoration: 'line-through', color: '#b5452f' }}><RareText>{String(a[k] ?? '')}</RareText></span>}
+            <span><RareText>{String(b[k] ?? '')}</RareText></span>
           </div>
         )
       })}

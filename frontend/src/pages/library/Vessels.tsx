@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -14,7 +15,7 @@ export default function Vessels() {
   const [grade, setGrade] = useState('')
   const [place, setPlace] = useState('')
   const query = new URLSearchParams()
-  const isChar = q.trim().length === 1
+  const isChar = Array.from(q.trim()).length === 1
   if (q.trim()) query.set(isChar ? 'char' : 'q', q.trim())
   if (period) query.set('period', period)
   if (grade) query.set('grade', grade)
@@ -59,11 +60,11 @@ export default function Vessels() {
                 <VesselImg image={v.image} name={v.name} />
                 <div className="meta">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="nm">{v.name}</span>
+                    <span className="nm"><RareText>{v.name}</RareText></span>
                     <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><Grade g={v.evidence_grade} /> <span className="dim">↗</span></span>
                   </div>
-                  <div className="note">{v.period.split('（')[0]} · {v.category.split('（')[0]} · {v.district || '—'}</div>
-                  <div className="note">现藏 {v.collection}</div>
+                  <div className="note"><RareText>{v.period.split('（')[0]}</RareText> · {v.category.split('（')[0]} · {v.district || '—'}</div>
+                  <div className="note">现藏 <RareText>{v.collection}</RareText></div>
                 </div>
               </div>
             ))}
@@ -78,7 +79,7 @@ export default function Vessels() {
             {[['字形谱系', <BarsOutlined />, '/library/characters'], ['关陇方言', <AudioOutlined />, '/library/dialects'], ['传世文献', <ReadOutlined />, '/library/texts']].map(([t, ic, to]) => (
               <div key={t as string} className="stat-card" style={{ cursor: 'pointer', padding: 20 }} onClick={() => nav(to as string)}>
                 <div style={{ fontSize: 26, color: '#2f6f5e' }}>{ic}</div>
-                <div style={{ marginTop: 8, fontSize: 16 }}>{t} <ArrowRightOutlined style={{ fontSize: 12 }} /></div>
+                <div style={{ marginTop: 8, fontSize: 16 }}><RareText>{t}</RareText> <ArrowRightOutlined style={{ fontSize: 12 }} /></div>
               </div>
             ))}
           </div>
@@ -89,7 +90,7 @@ export default function Vessels() {
             {[['A', '原器与拓片'], ['B', '权威著录'], ['C', '学界异说']].map(([g, t]) => (
               <div key={g} className="stat-card" style={{ padding: 20 }}>
                 <div className="serif" style={{ fontSize: 34, color: '#2f6f5e', fontWeight: 700 }}>{g}</div>
-                <div className="note">{t}</div>
+                <div className="note"><RareText>{t}</RareText></div>
               </div>
             ))}
           </div>

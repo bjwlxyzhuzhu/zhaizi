@@ -1,3 +1,4 @@
+import { RareText } from '../../components/RareText'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, App, Button, Checkbox, Form, Input, Modal, Select, Space, Switch, Table, Tag } from 'antd'
@@ -10,8 +11,8 @@ function AgentCard({ agent, bases, collections, onSave }: { agent: any; bases: a
   const [saving, setSaving] = useState(false)
   useEffect(() => setConfig(agent), [agent])
   return <div className="panel agent-card">
-    <div className="panel-head"><span className="panel-title">{agent.name}</span><Switch checked={config.enabled} checkedChildren="启用" unCheckedChildren="暂停" onChange={enabled => setConfig({ ...config, enabled })} /></div>
-    <p className="note">{agent.description}</p>
+    <div className="panel-head"><span className="panel-title"><RareText>{agent.name}</RareText></span><Switch checked={config.enabled} checkedChildren="启用" unCheckedChildren="暂停" onChange={enabled => setConfig({ ...config, enabled })} /></div>
+    <p className="note"><RareText>{agent.description}</RareText></p>
     <p>关联平台资料库</p>
     <Checkbox.Group value={config.collections} options={Object.entries(collections).map(([value, label]) => ({ value, label }))} onChange={value => setConfig({ ...config, collections: value })} />
     <p>关联自建知识库</p>
@@ -59,9 +60,9 @@ export default function Agents() {
           }}>训练 / 重建索引</Button>
         </Space>
         <div className="knowledge-stats"><span>资料 <b>{base?.documents}</b> 篇</span><span>检索分段 <b>{base?.chunks}</b> 个</span><span>最近重建：{base?.trained_at ? base.trained_at.replace('T', ' ') : '尚无重建记录'}</span></div>
-        {base?.description && <p className="note">{base.description}</p>}
+        {base?.description && <p className="note"><RareText>{base.description}</RareText></p>}
         <Table rowKey="id" dataSource={docs || []} pagination={{ pageSize: 8 }} scroll={{ x: 720 }} columns={[
-          { title: '资料标题', dataIndex: 'title' }, { title: '来源 / 著录', dataIndex: 'source', ellipsis: true },
+          { title: '资料标题', dataIndex: 'title', render: (value: string) => <RareText>{value}</RareText> }, { title: '来源 / 著录', dataIndex: 'source', render: (value: string) => <RareText>{value}</RareText>, ellipsis: true },
           { title: '分级', dataIndex: 'level', width: 80 }, { title: '状态', dataIndex: 'status', width: 110, render: (v: string) => <Tag color={v === 'approved' ? 'green' : 'default'}>{{ draft: '草稿', approved: '已发布', disabled: '已停用' }[v]}</Tag> },
           { title: '更新时间', dataIndex: 'updated_at', render: (v: string) => v.replace('T', ' ') }, { title: '操作', width: 80, render: (_: any, row: any) => <Button type="link" onClick={() => edit(row)}>编辑</Button> },
         ]} />
